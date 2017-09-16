@@ -1,4 +1,3 @@
-var i;
 procedure p;
 begin
   i := 2;
