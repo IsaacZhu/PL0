@@ -1,9 +1,9 @@
 #include <stdio.h>
 
-#define NRW        11     // number of reserved words
+#define NRW        16     // number of reserved words
 #define TXMAX      500    // length of identifier table
 #define MAXNUMLEN  14     // maximum number of digits in numbers
-#define NSYM       10     // maximum number of symbols in array ssym and csym
+#define NSYM       15     // maximum number of symbols in array ssym and csym
 #define MAXIDLEN   10     // length of identifiers
 
 #define MAXADDRESS 32767  // maximum address
@@ -45,7 +45,17 @@ enum symtype
 	SYM_CALL,
 	SYM_CONST,
 	SYM_VAR,
-	SYM_PROCEDURE
+	SYM_PROCEDURE,
+	SYM_ELSE,
+	SYM_ELSE_IF,
+	SYM_EXIT,
+	SYM_RETURN,
+	SYM_FOR,
+	SYM_AND,
+	SYM_OR,
+	SYM_ANTI,
+	SYM_LSBRAC,
+	SYM_RSBRAC
 };
 
 enum idtype
@@ -129,28 +139,35 @@ char line[80];
 
 instruction code[CXMAX];
 
+//key words
+//add else,else if,exit,return,for   added by zjr 17.9.19
 char* word[NRW + 1] =
 {
 	"", /* place holder */
 	"begin", "call", "const", "do", "end","if",
-	"odd", "procedure", "then", "var", "while"
+	"odd", "procedure", "then", "var", "while","else","else if","exit","return","for"
 };
 
 int wsym[NRW + 1] =
 {
 	SYM_NULL, SYM_BEGIN, SYM_CALL, SYM_CONST, SYM_DO, SYM_END,
-	SYM_IF, SYM_ODD, SYM_PROCEDURE, SYM_THEN, SYM_VAR, SYM_WHILE
+	SYM_IF, SYM_ODD, SYM_PROCEDURE, SYM_THEN, SYM_VAR, SYM_WHILE,
+	SYM_ELSE,SYM_ELSE_IF,SYM_EXIT,SYM_RETURN,SYM_FOR
 };
 
+//symbols
+//add & | ! [ ] added by zjr 17.9.19
+//TODO:&->&&
+//TODO:|->|| 
 int ssym[NSYM + 1] =
 {
 	SYM_NULL, SYM_PLUS, SYM_MINUS, SYM_TIMES, SYM_SLASH,
-	SYM_LPAREN, SYM_RPAREN, SYM_EQU, SYM_COMMA, SYM_PERIOD, SYM_SEMICOLON
+	SYM_LPAREN, SYM_RPAREN, SYM_EQU, SYM_COMMA, SYM_PERIOD, SYM_SEMICOLON,SYM_AND,SYM_OR,SYM_ANTI,SYM_LSBRAC,SYM_RSBRAC
 };
 
 char csym[NSYM + 1] =
 {
-	' ', '+', '-', '*', '/', '(', ')', '=', ',', '.', ';'
+	' ', '+', '-', '*', '/', '(', ')', '=', ',', '.', ';','&','|','!','[',']'
 };
 
 #define MAXINS   8
