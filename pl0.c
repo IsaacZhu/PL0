@@ -28,6 +28,7 @@ void error(int n)
 //////////////////////////////////////////////////////////////////////
 void getch(void)
 {
+	
 	if (cc == ll)
 	{
 		if (feof(infile))
@@ -40,6 +41,38 @@ void getch(void)
 		while ( (!feof(infile)) // added & modified by alex 01-02-09
 			    && ((ch = getc(infile)) != '\n'))
 		{
+			//annotation recognition added by zjr 2017.9.17
+			// /*(digits|symbols)**/
+			if (ch=='/')	
+			{
+				ch=getc(infile);
+				if (ch=='*')		
+				{
+					char tmpch='\0';	//record the former one char of ch
+					while (ch!='/')
+					{
+						tmpch=ch;
+						ch=getc(infile);						
+					}
+					if (tmpch!='*')	//error
+					{
+						printf("Unable to match anotation symbol!\n");
+						exit(1);
+					}
+					ch=getc(infile);
+					if (ch=='\n') 
+					{
+						break;	//end of line
+					}
+				}//if ch=='*'
+				else if (ch=='/')		// "//"anotation
+				{
+					while (ch!='\n'){
+						ch=getc(infile);
+					}
+					break;
+				}//else if
+			}// if ch == '/'
 			printf("%c", ch);
 			line[++ll] = ch;
 		} // while
@@ -58,7 +91,7 @@ void getsym(void)
 
 	while (ch == ' '||ch == '\t')
 		getch();
-
+	
 	if (isalpha(ch))
 	{ // symbol is a reserved word or an identifier.
 		k = 0;
@@ -136,7 +169,11 @@ void getsym(void)
 		{
 			sym = SYM_LES;     // <
 		}
+
 	}
+	
+	
+
 	else
 	{ // other tokens
 		i = NSYM;
@@ -887,7 +924,7 @@ int main ()
 	kk = MAXIDLEN;
 
 	getsym();
-
+	
 	set1 = createset(SYM_PERIOD, SYM_NULL);
 	set2 = uniteset(declbegsys, statbegsys);
 	set = uniteset(set1, set2);
