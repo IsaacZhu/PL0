@@ -14,6 +14,7 @@
 
 #define STACKSIZE  1000   // maximum storage
 
+//关键字的枚举类型
 enum symtype
 {
 	SYM_NULL,
@@ -139,8 +140,7 @@ char line[80];
 
 instruction code[CXMAX];
 
-//key words
-//add else,else if,exit,return,for   added by zjr 17.9.19
+//关键字集
 char* word[NRW + 1] =
 {
 	"", /* place holder */
@@ -148,6 +148,7 @@ char* word[NRW + 1] =
 	"odd", "procedure", "then", "var", "while","else","else if","exit","return","for"
 };
 
+//关键字代号集，与关键字一一对应
 int wsym[NRW + 1] =
 {
 	SYM_NULL, SYM_BEGIN, SYM_CALL, SYM_CONST, SYM_DO, SYM_END,
@@ -155,21 +156,20 @@ int wsym[NRW + 1] =
 	SYM_ELSE,SYM_ELSE_IF,SYM_EXIT,SYM_RETURN,SYM_FOR
 };
 
-//symbols
-//add & | ! [ ] added by zjr 17.9.19
-//TODO:&->&&
-//TODO:|->|| 
+//符号代号集，与符号一一对应
 int ssym[NSYM + 1] =
 {
 	SYM_NULL, SYM_PLUS, SYM_MINUS, SYM_TIMES, SYM_SLASH,
 	SYM_LPAREN, SYM_RPAREN, SYM_EQU, SYM_COMMA, SYM_PERIOD, SYM_SEMICOLON,SYM_AND,SYM_OR,SYM_ANTI,SYM_LSBRAC,SYM_RSBRAC
 };
 
+//符号集
 char csym[NSYM + 1] =
 {
 	' ', '+', '-', '*', '/', '(', ')', '=', ',', '.', ';','&','|','!','[',']'
 };
 
+//汇编指令集
 #define MAXINS   8
 char* mnemonic[MAXINS] =
 {

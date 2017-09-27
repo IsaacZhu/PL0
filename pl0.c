@@ -1,5 +1,5 @@
 // pl0 compiler source code
-
+//主函数在这个程序
 #pragma warning(disable:4996)
 
 
@@ -28,7 +28,6 @@ void error(int n)
 //////////////////////////////////////////////////////////////////////
 void getch(void)
 {
-	
 	if (cc == ll)
 	{
 		if (feof(infile))
@@ -91,7 +90,7 @@ void getsym(void)
 
 	while (ch == ' '||ch == '\t')
 		getch();
-	
+
 	if (isalpha(ch))
 	{ // symbol is a reserved word or an identifier.
 		k = 0;
@@ -169,10 +168,7 @@ void getsym(void)
 		{
 			sym = SYM_LES;     // <
 		}
-
 	}
-	
-	
 
 	else
 	{ // other tokens
@@ -267,6 +263,8 @@ int position(char* id)
 } // position
 
 //////////////////////////////////////////////////////////////////////
+//declare a const 
+//called by block()
 void constdeclaration()
 {
 	if (sym == SYM_IDENTIFIER)
@@ -780,6 +778,7 @@ int base(int stack[], int currentLevel, int levelDiff)
 
 //////////////////////////////////////////////////////////////////////
 // interprets and executes codes.
+// 解释器
 void interpret()
 {
 	int pc;        // program counter
@@ -911,23 +910,25 @@ int main ()
 		exit(1);
 	}
 
+	//创建记号流（词法分析）
 	phi = createset(SYM_NULL);
-	relset = createset(SYM_EQU, SYM_NEQ, SYM_LES, SYM_LEQ, SYM_GTR, SYM_GEQ, SYM_NULL);
+	relset = createset(SYM_EQU, SYM_NEQ, SYM_LES, SYM_LEQ, SYM_GTR, SYM_GEQ, SYM_NULL);	//关系符集
 	
 	// create begin symbol sets
-	declbegsys = createset(SYM_CONST, SYM_VAR, SYM_PROCEDURE, SYM_NULL);
-	statbegsys = createset(SYM_BEGIN, SYM_CALL, SYM_IF, SYM_WHILE, SYM_NULL);
-	facbegsys = createset(SYM_IDENTIFIER, SYM_NUMBER, SYM_LPAREN, SYM_MINUS, SYM_NULL);
+	declbegsys = createset(SYM_CONST, SYM_VAR, SYM_PROCEDURE, SYM_NULL);	//声明符
+	statbegsys = createset(SYM_BEGIN, SYM_CALL, SYM_IF, SYM_WHILE, SYM_NULL);	//状态符
+	facbegsys = createset(SYM_IDENTIFIER, SYM_NUMBER, SYM_LPAREN, SYM_MINUS, SYM_NULL);   //这个。。。
 
 	err = cc = cx = ll = 0; // initialize global variables
 	ch = ' ';
 	kk = MAXIDLEN;
 
+	//从输入流中获取一个字符
 	getsym();
-	
-	set1 = createset(SYM_PERIOD, SYM_NULL);
-	set2 = uniteset(declbegsys, statbegsys);
-	set = uniteset(set1, set2);
+
+	set1 = createset(SYM_PERIOD, SYM_NULL);	//
+	set2 = uniteset(declbegsys, statbegsys);	//合并声明和状态
+	set = uniteset(set1, set2);					//再合并
 	block(set);
 	destroyset(set1);
 	destroyset(set2);
@@ -948,6 +949,7 @@ int main ()
 		fclose(hbin);
 	}
 	if (err == 0)
+		//执行解释器
 		interpret();
 	else
 		printf("There are %d error(s) in PL/0 program.\n", err);
