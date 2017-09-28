@@ -52,11 +52,14 @@ enum symtype
 	SYM_EXIT,
 	SYM_RETURN,
 	SYM_FOR,
-	SYM_AND,
-	SYM_OR,
+	SYM_BITAND,		//the folowing two changed by lijiquan
+	SYM_BITOR,
 	SYM_ANTI,
 	SYM_LSBRAC,
-	SYM_RSBRAC
+	SYM_RSBRAC,
+	//=================added by lijiquan
+	SYM_AND,
+	SYM_OR
 };
 
 enum idtype
@@ -74,7 +77,9 @@ enum oprcode
 	OPR_RET, OPR_NEG, OPR_ADD, OPR_MIN,
 	OPR_MUL, OPR_DIV, OPR_ODD, OPR_EQU,
 	OPR_NEQ, OPR_LES, OPR_LEQ, OPR_GTR,
-	OPR_GEQ
+	OPR_GEQ, 
+	//================added by lijiquan
+	OPR_AND, OPR_OR, OPR_ANTI
 };
 
 
@@ -160,7 +165,7 @@ int wsym[NRW + 1] =
 int ssym[NSYM + 1] =
 {
 	SYM_NULL, SYM_PLUS, SYM_MINUS, SYM_TIMES, SYM_SLASH,
-	SYM_LPAREN, SYM_RPAREN, SYM_EQU, SYM_COMMA, SYM_PERIOD, SYM_SEMICOLON,SYM_AND,SYM_OR,SYM_ANTI,SYM_LSBRAC,SYM_RSBRAC
+	SYM_LPAREN, SYM_RPAREN, SYM_EQU, SYM_COMMA, SYM_PERIOD, SYM_SEMICOLON,SYM_BITAND,SYM_BITOR,SYM_ANTI,SYM_LSBRAC,SYM_RSBRAC
 };
 
 //符号集

@@ -169,6 +169,32 @@ void getsym(void)
 			sym = SYM_LES;     // <
 		}
 	}
+	else if (ch == '&')
+	{
+		getch();
+		if (ch == '&')
+		{
+			sym = SYM_AND;	  	//&&
+			getch();
+		}
+		else
+		{
+			sym = SYM_BITAND;	//&
+		}
+	}
+	else if (ch == '|')
+	{
+		getch();
+		if (ch == '|')
+		{
+			sym = SYM_OR;		//||
+			getch();
+		}
+		else
+		{
+			sym = SYM_BITOR;	//|
+		}
+	}
 
 	else
 	{ // other tokens
@@ -386,6 +412,12 @@ void factor(symset fsys)
 			 getsym();
 			 expression(fsys);
 			 gen(OPR, 0, OPR_NEG);
+		}//================added by lijiquan
+		else if(sym == SYM_ANTI)	//ANTI, Expr -> '!' Expr
+		{
+			getsym();
+			expression(fsys);
+			gen(OPR, 0, OPR_ANTI);
 		}
 		test(fsys, createset(SYM_LPAREN, SYM_NULL), 23);
 	} // while
@@ -422,9 +454,13 @@ void expression(symset fsys)
 	int addop;
 	symset set;
 
-	set = uniteset(fsys, createset(SYM_PLUS, SYM_MINUS, SYM_NULL));
+	set = uniteset(fsys, createset(SYM_PLUS, SYM_MINUS, SYM_AND, SYM_OR, SYM_NULL));
 	
 	term(set);
+	while (sym == SYM_OR){
+		getsym();
+		expression()
+	}
 	while (sym == SYM_PLUS || sym == SYM_MINUS)
 	{
 		addop = sym;
@@ -858,6 +894,18 @@ void interpret()
 			case OPR_LEQ:
 				top--;
 				stack[top] = stack[top] <= stack[top + 1];
+				//================added by lijiquan
+				break;
+			case OPR_AND:
+				top --;
+				stack[top] = stack[top] && stack[top + 1];
+				break;
+			case OPR_OR:
+				top --;
+				stack[top] = stack[top] || stack[top + 1];
+				break;
+			case OPR_ANTI:
+				stack[top] = !stack[top];
 			} // switch
 			break;
 		case LOD:
@@ -917,7 +965,7 @@ int main ()
 	// create begin symbol sets
 	declbegsys = createset(SYM_CONST, SYM_VAR, SYM_PROCEDURE, SYM_NULL);	//声明符
 	statbegsys = createset(SYM_BEGIN, SYM_CALL, SYM_IF, SYM_WHILE, SYM_NULL);	//状态符
-	facbegsys = createset(SYM_IDENTIFIER, SYM_NUMBER, SYM_LPAREN, SYM_MINUS, SYM_NULL);   //这个。。。
+	facbegsys = createset(SYM_IDENTIFIER, SYM_NUMBER, SYM_LPAREN, SYM_MINUS, SYM_NULL);   //因子(factor)符
 
 	err = cc = cx = ll = 0; // initialize global variables
 	ch = ' ';
