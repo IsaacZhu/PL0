@@ -449,18 +449,14 @@ void term(symset fsys)
 } // term
 
 //////////////////////////////////////////////////////////////////////
-void expression(symset fsys)
+void addictive_expression(symset fsys)			//<===========================name changed by lijiquan
 {
 	int addop;
 	symset set;
 
-	set = uniteset(fsys, createset(SYM_PLUS, SYM_MINUS, SYM_AND, SYM_OR, SYM_NULL));
+	set = uniteset(fsys, createset(SYM_PLUS, SYM_MINUS, SYM_NULL));
 	
 	term(set);
-	while (sym == SYM_OR){
-		getsym();
-		expression()
-	}
 	while (sym == SYM_PLUS || sym == SYM_MINUS)
 	{
 		addop = sym;
@@ -477,7 +473,52 @@ void expression(symset fsys)
 	} // while
 
 	destroyset(set);
+} // addictive_expression
+
+//============================================added by lijiquan====================================
+void logi_and_expression(symset fsys)
+{//deal with logical "and"
+	symset set;
+
+	set = uniteset(fsys, createset(SYM_AND, SYM_NULL));
+	
+	addictive_expression(set);
+	while (sym == SYM_AND)
+	{
+		getsym();
+		addictive_expression(set);
+		gen(OPR, 0, OPR_AND);
+	} // while
+
+	destroyset(set);
+}//logi_and_expression
+
+void logi_or_expression(symset fsys)
+{//deal with logical "or"
+	symset set;
+
+	set = uniteset(fsys, createset(SYM_OR, SYM_NULL));
+	
+	logi_and_expression(set);
+	while (sym == SYM_OR)
+	{
+		getsym();
+		logi_and_expression(set);
+		gen(OPR, 0, OPR_OR);
+	} // while
+
+	destroyset(set);
+}//logi_or_expression
+
+void expression(symset fsys)
+{//nothing just to make sure we don't need to change the function name in other functions
+	symset set;
+
+	set = uniteset(fsys, createset(SYM_NULL));		//we can change it later
+	logi_or_expression(set);			//ATTENTION, if you add something whose priority is larger than "||", change it!!
+	destroyset(set);
 } // expression
+//===================================================================================
 
 //////////////////////////////////////////////////////////////////////
 void condition(symset fsys)
@@ -965,7 +1006,7 @@ int main ()
 	// create begin symbol sets
 	declbegsys = createset(SYM_CONST, SYM_VAR, SYM_PROCEDURE, SYM_NULL);	//声明符
 	statbegsys = createset(SYM_BEGIN, SYM_CALL, SYM_IF, SYM_WHILE, SYM_NULL);	//状态符
-	facbegsys = createset(SYM_IDENTIFIER, SYM_NUMBER, SYM_LPAREN, SYM_MINUS, SYM_NULL);   //因子(factor)符
+	facbegsys = createset(SYM_IDENTIFIER, SYM_NUMBER, SYM_LPAREN, SYM_MINUS, SYM_ANTI, SYM_NULL);   //因子(factor)符
 
 	err = cc = cx = ll = 0; // initialize global variables
 	ch = ' ';
