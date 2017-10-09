@@ -3,7 +3,7 @@
 #define NRW        16     // number of reserved words
 #define TXMAX      500    // length of identifier table
 #define MAXNUMLEN  14     // maximum number of digits in numbers
-#define NSYM       15     // maximum number of symbols in array ssym and csym
+#define NSYM       17     // maximum number of symbols in array ssym and csym
 #define MAXIDLEN   10     // length of identifiers
 
 #define MAXADDRESS 32767  // maximum address
@@ -59,7 +59,10 @@ enum symtype
 	SYM_RSBRAC,
 	//=================added by lijiquan
 	SYM_AND,
-	SYM_OR
+	SYM_OR,
+	
+	SYM_BITXOR, 	// ^
+	SYM_MOD			// %
 };
 
 enum idtype
@@ -79,7 +82,9 @@ enum oprcode
 	OPR_NEQ, OPR_LES, OPR_LEQ, OPR_GTR,
 	OPR_GEQ, 
 	//================added by lijiquan
-	OPR_AND, OPR_OR, OPR_ANTI
+	OPR_AND, OPR_OR, OPR_ANTI,
+	
+	OPR_BITAND,OPR_BITOR,OPR_BITXOR,OPR_MOD
 };
 
 
@@ -165,13 +170,13 @@ int wsym[NRW + 1] =
 int ssym[NSYM + 1] =
 {
 	SYM_NULL, SYM_PLUS, SYM_MINUS, SYM_TIMES, SYM_SLASH,
-	SYM_LPAREN, SYM_RPAREN, SYM_EQU, SYM_COMMA, SYM_PERIOD, SYM_SEMICOLON,SYM_BITAND,SYM_BITOR,SYM_ANTI,SYM_LSBRAC,SYM_RSBRAC
+	SYM_LPAREN, SYM_RPAREN, SYM_EQU, SYM_COMMA, SYM_PERIOD, SYM_SEMICOLON,SYM_BITAND,SYM_BITOR,SYM_ANTI,SYM_LSBRAC,SYM_RSBRAC,SYM_BITXOR,SYM_MOD
 };
 
 //符号集
 char csym[NSYM + 1] =
 {
-	' ', '+', '-', '*', '/', '(', ')', '=', ',', '.', ';','&','|','!','[',']'
+	' ', '+', '-', '*', '/', '(', ')', '=', ',', '.', ';','&','|','!','[',']','^','%'
 };
 
 //汇编指令集

@@ -195,6 +195,16 @@ void getsym(void)
 			sym = SYM_BITOR;	//|
 		}
 	}
+	else if (ch == '^')
+	{
+		getch();
+		sym = SYM_BITXOR;
+	}
+	else if (ch == '%')
+	{
+		getch();
+		sym = SYM_MOD;
+	}
 
 	else
 	{ // other tokens
@@ -429,9 +439,9 @@ void term(symset fsys)
 	int mulop;
 	symset set;
 	
-	set = uniteset(fsys, createset(SYM_TIMES, SYM_SLASH, SYM_NULL));
+	set = uniteset(fsys, createset(SYM_TIMES, SYM_SLASH, SYM_MOD, SYM_NULL));
 	factor(set);
-	while (sym == SYM_TIMES || sym == SYM_SLASH)
+	while (sym == SYM_TIMES || sym == SYM_SLASH || sym == SYM_MOD)
 	{
 		mulop = sym;
 		getsym();
@@ -440,9 +450,12 @@ void term(symset fsys)
 		{
 			gen(OPR, 0, OPR_MUL);
 		}
-		else
+		else if(mulop == SYM_SLASH)
 		{
 			gen(OPR, 0, OPR_DIV);
+		}else 
+		{
+			gen(OPR, 0, OPR_MOD);
 		}
 	} // while
 	destroyset(set);
@@ -475,6 +488,49 @@ void addictive_expression(symset fsys)			//<===========================name chan
 	destroyset(set);
 } // addictive_expression
 
+void bit_and_expr(symset fsys) // Bit operator and '&'
+{
+	symset set;
+	set = uniteset(fsys, createset(SYM_BITAND, SYM_NULL));
+	addictive_expression(set);
+	while(sym == SYM_BITAND)
+	{
+		getsym();
+		addictive_expression(set);
+		gen(OPR, 0, OPR_BITAND);
+	}
+	destroyset(set);
+}// bit_and_expr
+
+void bit_xor_expr(symset fsys) // Bit operator xor '^'
+{
+	symset set;
+	set = uniteset(fsys, createset(SYM_BITXOR, SYM_NULL));
+	bit_and_expr(set);
+	while(sym == SYM_BITXOR)
+	{
+		getsym();
+		bit_and_expr(set);
+		gen(OPR, 0, OPR_BITXOR);
+	}
+	destroyset(set);
+}
+
+void bit_or_expr(symset fsys)	//Bit operator or '|'
+{
+	symset set;
+	set = uniteset(fsys, createset(SYM_BITOR, SYM_NULL));
+	bit_xor_expr(set);
+	while(sym == SYM_BITOR)
+	{
+		getsym();
+		bit_xor_expr(set);
+		gen(OPR, 0, OPR_BITOR);
+	}//while
+	destroyset(set);
+}//bit_or_expr
+
+
 //============================================added by lijiquan====================================
 void logi_and_expression(symset fsys)
 {//deal with logical "and"
@@ -482,11 +538,13 @@ void logi_and_expression(symset fsys)
 
 	set = uniteset(fsys, createset(SYM_AND, SYM_NULL));
 	
-	addictive_expression(set);
+	//addictive_expression(set);
+	bit_or_expr(set);
 	while (sym == SYM_AND)
 	{
 		getsym();
-		addictive_expression(set);
+		//addictive_expression(set);
+		bit_or_expr(set);
 		gen(OPR, 0, OPR_AND);
 	} // while
 
@@ -911,6 +969,16 @@ void interpret()
 				}
 				stack[top] /= stack[top + 1];
 				break;
+			case OPR_MOD:
+				top--;
+				if (stack[top + 1] == 0)
+				{
+					fprintf(stderr, "Runtime Error: Divided by zero when using mod.\n");
+					fprintf(stderr, "Program terminated.\n");
+					continue;
+				}
+				stack[top] %= stack[top + 1];
+				break;
 			case OPR_ODD:
 				stack[top] %= 2;
 				break;
@@ -947,6 +1015,19 @@ void interpret()
 				break;
 			case OPR_ANTI:
 				stack[top] = !stack[top];
+				break;
+			case OPR_BITAND:
+				top --;
+				stack[top] = stack[top] & stack[top + 1];
+				break;
+			case OPR_BITOR:
+				top --;
+				stack[top] = stack[top] | stack[top + 1];
+				break;
+			case OPR_BITXOR:
+				top --;
+				stack[top] = stack[top] ^ stack[top + 1];
+				break;
 			} // switch
 			break;
 		case LOD:
