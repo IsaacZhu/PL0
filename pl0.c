@@ -360,6 +360,7 @@ void listcode(int from, int to)
 void factor(symset fsys)
 {
 	void expression(symset fsys);
+	void logi_or_expression(symset fsys);
 	int i;
 	symset set;
 	
@@ -428,6 +429,12 @@ void factor(symset fsys)
 			getsym();
 			expression(fsys);
 			gen(OPR, 0, OPR_ANTI);
+		}
+		else if(sym == SYM_ODD)
+		{
+			getsym();
+			expression(fsys);
+			gen(OPR, 0, 6);
 		}
 		test(fsys, createset(SYM_LPAREN, SYM_NULL), 23);
 	} // while
@@ -584,20 +591,20 @@ void condition(symset fsys)
 	int relop;
 	symset set;
 
-	if (sym == SYM_ODD)
-	{
-		getsym();
-		expression(fsys);
-		gen(OPR, 0, 6);
-	}
-	else
+	// if (sym == SYM_ODD)
+	// {
+	// 	getsym();
+	// 	expression(fsys);
+	// 	gen(OPR, 0, 6);
+	// }
+	// else
 	{
 		set = uniteset(relset, fsys);
 		expression(set);
-		destroyset(set);
+		//destroyset(set);
 		if (! inset(sym, relset))
 		{
-			error(20);
+			//error(20);
 		}
 		else
 		{
@@ -626,6 +633,7 @@ void condition(symset fsys)
 				break;
 			} // switch
 		} // else
+		destroyset(set);
 	} // else
 } // condition
 
