@@ -1,6 +1,5 @@
 // pl0 compiler source code
 //主函数在这个程序
-//pl0.c
 #pragma warning(disable:4996)
 
 
@@ -641,7 +640,7 @@ void condition(symset fsys)
 //////////////////////////////////////////////////////////////////////
 void statement(symset fsys)
 {
-	int i, cx1, cx2;
+	int i, cx1, cx2,cx3,cx4,cx5;
 	symset set1, set;
 
 	if (sym == SYM_IDENTIFIER)
@@ -717,7 +716,47 @@ void statement(symset fsys)
 		cx1 = cx;
 		gen(JPC, 0, 0);
 		statement(fsys);
-		code[cx1].a = cx;	
+		getsym();
+		if(sym==SYM_ELSE_IF)//add by ywt,deal with SYM_ELSE_IF,2017.10.20
+        {
+            getsym();
+			condition(set);//
+		    if (sym == SYM_THEN)
+		    {
+			   getsym();
+		    }
+		    else
+		    {
+			error(16); // 'then' expected.
+		    }
+            cx4=cx;
+            code[cx1].a=cx+1;
+            gen(JPC,0,0);
+            statement(fsys);
+			getsym();   
+			 if(sym==SYM_ELSE) 
+           {
+            getsym();
+            cx5=cx;
+            code[cx4].a=cx+1;
+            gen(JMP,0,0);
+            statement(fsys);
+            code[cx5].a=cx;                                                  
+           }     
+		   else
+		   code[cx4].a=cx;                                       
+         }
+		else if(sym==SYM_ELSE) //add by ywt,deal with SYM_ELSE,2017.10.20
+        {
+            getsym();
+            cx3=cx;
+            code[cx1].a=cx+1;
+            gen(JMP,0,0);
+            statement(fsys);
+            code[cx3].a=cx;                                                  
+         }
+		else
+		code[cx1].a = cx;
 	}
 	else if (sym == SYM_BEGIN)
 	{ // block
