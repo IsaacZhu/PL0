@@ -70,9 +70,10 @@ enum idtype
 	ID_CONSTANT, ID_VARIABLE, ID_PROCEDURE
 };
 
+//add PAS: for parameter pass //modified by zjr 17.10.27
 enum opcode
 {
-	LIT, OPR, LOD, STO, CAL, INT, JMP, JPC
+	LIT, OPR, LOD, STO, CAL, INT, JMP, JPC,JPC_and,JPC_or,PAS
 };
 
 enum oprcode
@@ -149,6 +150,7 @@ int  tx = 0;
 char line[80];
 
 instruction code[CXMAX];
+int funcparam=0;
 
 //关键字集
 char* word[NRW + 1] =
@@ -180,10 +182,10 @@ char csym[NSYM + 1] =
 };
 
 //汇编指令集
-#define MAXINS   8
+#define MAXINS   11
 char* mnemonic[MAXINS] =
 {
-	"LIT", "OPR", "LOD", "STO", "CAL", "INT", "JMP", "JPC"
+	"LIT", "OPR", "LOD", "STO", "CAL", "INT", "JMP", "JPC","JPC_and","JPC_or","PAS"
 };
 
 typedef struct
@@ -193,7 +195,8 @@ typedef struct
 	int  value;
 } comtab;
 
-comtab table[TXMAX];
+//comtab table[TXMAX];
+comtab *table; //将table变成指针 //modified by zjr 17.10.27
 
 typedef struct
 {
@@ -205,4 +208,21 @@ typedef struct
 
 FILE* infile;
 
+//to store symbol table list  //added by zjr 17.10.27
+typedef struct stnode
+{
+	comtab *stable;
+	struct stnode *next;
+	int level;
+	int funcparam;
+	int localtx;
+	char funcname[100];
+}stnode;
+
+stnode stlist;
+stnode *Func;
+int position(char *id);	//declare position //added by zjr 17.10.27
+int tmpaddress=0;	//record address   //added by zjr 17.10.27
+char funcname[200];	//record funcname  //added by zjr 17.10.27
+char tmpparam[50][50];  //record name of parameters temporarily //added by zjr 17.10.27
 // EOF PL0.h

@@ -1,0 +1,10 @@
+var i;
+procedure p(j,fuck,whatthehell,omg);
+begin
+	j:=j+1;
+end;
+
+begin
+	i:=1;
+	call p(i,i,i,i);
+end.

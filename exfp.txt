@@ -1,0 +1,8 @@
+var result;
+procedure fact(n);	//no semicolon here!
+begin
+end;			//no semicolon here!
+begin
+	result:=fact(5);
+//or a statement like 'print(fact(5));' is welcome,if implemented!
+end. 

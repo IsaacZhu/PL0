@@ -257,6 +257,8 @@ void test(symset s1, symset s2, int n)
 //////////////////////////////////////////////////////////////////////
 int dx;  // data allocation index
 
+
+
 // enter object(constant, variable or procedre) into table.
 void enter(int kind)
 {
@@ -281,8 +283,9 @@ void enter(int kind)
 		mk->address = dx++;
 		break;
 	case ID_PROCEDURE:
+		strcpy(funcname, id);	//record function name temporily //added by zjr 17.10.27
 		mk = (mask*) &table[tx];
-		mk->level = level;
+		mk->level = level; 
 		break;
 	} // switch
 } // enter
@@ -687,15 +690,50 @@ void statement(symset fsys)
 			else if (table[i].kind == ID_PROCEDURE)
 			{
 				mask* mk;
+				//support parameters now //modified by zjr 17.10.27
+				getsym();
+				if (sym == SYM_LPAREN)
+				{
+					getsym();
+					if (sym != SYM_RPAREN)			//call pro()
+					{ 
+						int paramnumber=0;
+						while (sym != SYM_RPAREN)	//not ")"
+						{
+							if (sym == SYM_IDENTIFIER)
+							{ 
+								int pos;
+								pos=position(id);	//get pos'
+								mk = (mask*) &table[pos];
+								if (pos!=0)
+								{
+									gen(PAS,paramnumber++,mk->address); 	//PAS(param_number,var_addr)
+								}
+								else error(11); //use this temporarily.. if I'm happy I'll change it
+								getsym();	//next sym
+							}
+							else if (sym == SYM_COMMA)
+							{
+								getsym();	//next sym
+								continue;
+							}
+							else 			//not "," ! an error occured
+							{
+								error(5); 	//missing ","    //need to be changed to be better
+							}
+						}//while
+						//the while end means that sym==')'
+					}// if sym not rparen
+				}// if sym lparen
 				mk = (mask*) &table[i];
 				gen(CAL, level - mk->level, mk->address);
-			}
+			}//else if id procedure
 			else
 			{
 				error(15); // A constant or variable can not be called. 
 			}
 			getsym();
-		}
+		}//if procedure identifier
 	} 
 	else if (sym == SYM_IF)
 	{ // if statement
@@ -812,7 +850,101 @@ void statement(symset fsys)
 	}
 	test(fsys, phi, 19);
 } // statement
-			
+
+//operation to chain list //added by zjr 17.10.27
+void initchainlist()
+{
+	stlist.level=0;
+	stlist.next=NULL;
+	stlist.funcparam=0;
+	stlist.stable=(comtab *)calloc(TXMAX,sizeof(comtab));
+	stlist.localtx=0;
+} 
+
+//enter parameters to symbol table
+void param_enter()
+{
+	int i,pos;
+	mask *mk;
+	for (i=0;i<funcparam;++i)
+	{
+		pos=position(tmpparam[i]); //get position
+		if (pos==0)	//this parameter don't exist ->  build a new table item
+		{
+			strcpy(table[++tx].name,tmpparam[i]);
+			table[tx].kind=ID_VARIABLE;
+			mk=(mask *)&table[tx];
+			mk->level=level;
+			mk->address=dx++;	//data +1	
+		}
+		else	//else -> change its level and address, make it a local parameter
+		{
+			table[pos].kind=ID_VARIABLE;
+			mk=(mask *)&table[pos];
+			mk->level=level;
+			mk->address=dx++;
+		}
+	}
+}
+
+void nodeinsert()
+{
+	stnode *P; //new node
+	stnode *Q;
+
+	Q=&stlist;
+	while (Q->next!=NULL)//TO TAIL
+	{
+		Q=Q->next;
+	}
+	Q->next=(stnode *)malloc(sizeof(stnode));
+	P=Q->next;
+	P->stable=(comtab *)calloc(TXMAX,sizeof(comtab));	
+	
+	memcpy(P->stable,Q->stable,TXMAX*sizeof(comtab));
+	table=P->stable;	//point to new symbol table
+	param_enter();		//copy parameters
+	P->level=level; 
+	P->next=NULL;
+	P->funcparam=funcparam;
+	P->localtx=tx;		//need more consideration
+	strcpy(P->funcname,funcname);	
+	Func=P;			//control
+}
+
+void nodedelete()
+{
+	stnode *P;
+	stnode *Q;
+	P=&stlist;
+	if (P->next==NULL) //only head exist
+	{
+		return;
+	}
+	Q=P->next;
+	while (Q->next!=NULL) //look for tail
+	{
+		P=P->next;
+		Q=Q->next;
+	}
+	strcpy(funcname,Q->funcname);
+	free(Q);
+	P->next=NULL;
+	table=P->stable;
+	tx=P->localtx;
+	Func=P;		    //change control	
+}
+
+void nodeparam()
+{
+	stnode *P;
+	P=&stlist;
+	while (P->next != NULL) P=P->next;
+	if (P==&stlist) return; 	//no function error
+	P->funcparam=funcparam;
+}
+//end of operation to chain list
+	
 //////////////////////////////////////////////////////////////////////
 void block(symset fsys)
 {
@@ -824,9 +956,17 @@ void block(symset fsys)
 
 	dx = 3;
 	block_dx = dx;
+	nodeinsert();	//create a new node //added by zjr 17.10.27
+	funcparam=0;//initialize funcparam //added by zjr 17.10.27
+
 	mk = (mask*) &table[tx];
 	mk->address = cx;
 	gen(JMP, 0, 0);
+
+	int sonpos;	//added by zjr 17.10.27
+	mask *tmpmask;
+	char tmpfuncname[MAXIDLEN + 1];	
+
 	if (level > MAXLEVEL)
 	{
 		error(32); // There are too many levels.
@@ -885,6 +1025,7 @@ void block(symset fsys)
 			if (sym == SYM_IDENTIFIER)
 			{
 				enter(ID_PROCEDURE);
+				strcpy(tmpfuncname,id); 	//record funcname temporarily //added by zjr 17.10.27
 				getsym();
 			}
 			else
@@ -892,7 +1033,41 @@ void block(symset fsys)
 				error(4); // There must be an identifier to follow 'const', 'var', or 'procedure'.
 			}
 
-
+		
+			//added by zjr  17.10.26 parameters passing
+			if (sym == SYM_LPAREN) 			//that means   procedure xx(
+			{
+				memset(tmpparam,0,50*50*sizeof(char));
+				funcparam=0;
+				getsym();
+				if (sym != SYM_RPAREN)
+				{ 
+					while (sym != SYM_RPAREN)	//not ")"
+					{
+						if (sym == SYM_IDENTIFIER)
+						{
+							strcpy(tmpparam[funcparam],id);
+							++funcparam;
+							getsym();	//next sym
+						}
+						else if (sym == SYM_COMMA)
+						{
+							getsym();	//next sym
+							continue;
+						}
+						else 			//not "," ! an error occured
+						{
+							error(5); 	//missing ","    //need to be changed to be better
+						}
+					}
+					getsym();
+				}
+				else 					//procedure xx()	
+				{
+					funcparam=0;
+					getsym();	//next sym
+				}
+			}
 			if (sym == SYM_SEMICOLON)
 			{
 				getsym();
@@ -904,6 +1079,7 @@ void block(symset fsys)
 
 			level++;
 			savedTx = tx;
+			
 			set1 = createset(SYM_SEMICOLON, SYM_NULL);
 			set = uniteset(set1, fsys);
 			block(set);
@@ -911,7 +1087,12 @@ void block(symset fsys)
 			destroyset(set);
 			tx = savedTx;
 			level--;
-
+			
+			//deliver address to father symbol table  //added by zjr 17.10.27
+			sonpos=position(tmpfuncname);
+			tmpmask=(mask *)&table[sonpos];
+			tmpmask->address=tmpaddress;
+			
 			if (sym == SYM_SEMICOLON)
 			{
 				getsym();
@@ -925,8 +1106,10 @@ void block(symset fsys)
 			{
 				error(5); // Missing ',' or ';'.
 			}
-		} // while
+			
+		} // while sym_procedure
 		dx = block_dx; //restore dx after handling procedure call!
+		
 		set1 = createset(SYM_IDENTIFIER, SYM_NULL);
 		set = uniteset(statbegsys, set1);
 		test(set, declbegsys, 7);
@@ -936,7 +1119,13 @@ void block(symset fsys)
 	while (inset(sym, declbegsys));
 
 	code[mk->address].a = cx;
+	
+	
+
 	mk->address = cx;
+	tmpaddress=cx;	//record address //added by zjr 17.10.27	
+	
+
 	cx0 = cx;
 	gen(INT, 0, block_dx);
 	set1 = createset(SYM_SEMICOLON, SYM_END, SYM_NULL);
@@ -947,6 +1136,7 @@ void block(symset fsys)
 	gen(OPR, 0, OPR_RET); // return
 	test(fsys, phi, 8); // test for error: Follow the statement is an incorrect symbol.
 	listcode(cx0, cx);
+	nodedelete();	    //a procedure has beened analyzed, delete its symbol table
 } // block
 
 //////////////////////////////////////////////////////////////////////
@@ -1105,6 +1295,10 @@ void interpret()
 				pc = i.a;
 			top--;
 			break;
+		// move a parameter from a func's father //added by zjr 17.10.28
+		case PAS:
+			stack[top+4+i.l]=stack[base(stack,b,0)+i.a];			
+			break;
 		} // switch
 	}
 	while (pc);
@@ -1147,7 +1341,11 @@ int main ()
 	set1 = createset(SYM_PERIOD, SYM_NULL);	//
 	set2 = uniteset(declbegsys, statbegsys);	//合并声明和状态
 	set = uniteset(set1, set2);					//再合并
+	
+	strcpy(funcname,"main");
+	initchainlist();	//initialize to symbol table  //added by zjr 17.10.27
 	block(set);
+
 	destroyset(set1);
 	destroyset(set2);
 	destroyset(set);
