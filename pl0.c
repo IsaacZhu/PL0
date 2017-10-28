@@ -542,39 +542,55 @@ void bit_or_expr(symset fsys)	//Bit operator or '|'
 
 
 //============================================added by lijiquan====================================
-void logi_and_expression(symset fsys)
+void logi_and_expression(symset fsys)//----change by ywt 2017.10.25
 {//deal with logical "and"
 	symset set;
-
 	set = uniteset(fsys, createset(SYM_AND, SYM_NULL));
-	
 	//addictive_expression(set);
 	bit_or_expr(set);
 	while (sym == SYM_AND)
-	{
+	{ 
+		if(sign_condition)
+		{
+			if(sign_or)                //判断前面的符号是否存在or，若存在，则让上一个or继续执行到此处
+		    {
+				code[cx7[sign_or]].a=cx7[sign_and]+1;
+			    sign_or--;
+		    }
+		    sign_and++;              //用于记录and逻辑符的计算次数，并作为跳转指针
+		    cx6[sign_and]=cx;        //记录执行到and逻辑符时的cx值
+		    gen(JPC_and,0,0);
+		}
 		getsym();
 		//addictive_expression(set);
 		bit_or_expr(set);
 		gen(OPR, 0, OPR_AND);
 	} // while
-
 	destroyset(set);
 }//logi_and_expression
 
-void logi_or_expression(symset fsys)
+void logi_or_expression(symset fsys)//----change by ywt,2017.10.25
 {//deal with logical "or"
 	symset set;
-
 	set = uniteset(fsys, createset(SYM_OR, SYM_NULL));
-	
 	logi_and_expression(set);
 	while (sym == SYM_OR)
 	{
+		if(sign_condition)
+		{
+			if(sign_and)                      //判断前面的符号是否存在and，若存在，则让上一个and继续执行
+	      	{
+				  code[cx6[sign_and]].a=cx6[sign_and]+1;
+			      sign_and--;
+		    }
+		    sign_or++;                     //用于记录or逻辑符的计算次数，并作为跳转指针
+		    cx7[sign_or]=cx;               // //记录执行到or逻辑符时的cx值
+		    gen(JPC_or,0,0);
+		}
 		getsym();
 		logi_and_expression(set);
 		gen(OPR, 0, OPR_OR);
 	} // while
-
 	destroyset(set);
 }//logi_or_expression
 
@@ -589,11 +605,11 @@ void expression(symset fsys)
 //===================================================================================
 
 //////////////////////////////////////////////////////////////////////
-void condition(symset fsys)
+void condition(symset fsys)//---change by ywt,2017.10.25
 {
 	int relop;
 	symset set;
-
+    sign_condition=1;
 	// if (sym == SYM_ODD)
 	// {
 	// 	getsym();
@@ -638,7 +654,24 @@ void condition(symset fsys)
 		} // else
 		destroyset(set);
 	} // else
+	for(;sign_or>0;)//用于回填JMP_or跳转地址
+	{
+		 code[cx7[sign_or]].a=cx+1;
+		 sign_or--;
+	}
+	sign_condition=0;    
 } // condition
+
+/////////////////////////////////////
+void Endcondition(int JPcx)//add by ywt 2017.10.25,用于回填JMP_and跳转地址
+{
+	for(;sign_and>0;)//
+	{ 
+		code[cx6[sign_and]].a=JPcx;
+		sign_and--;
+	 } 
+}
+
 
 //////////////////////////////////////////////////////////////////////
 void statement(symset fsys)
@@ -734,7 +767,7 @@ void statement(symset fsys)
 			}
 			getsym();
 		}//if procedure identifier
-	} 
+	}//else if SYM_CALL
 	else if (sym == SYM_IF)
 	{ // if statement
 		getsym();
@@ -782,8 +815,9 @@ void statement(symset fsys)
             code[cx5].a=cx;                                                  
            }     
 		   else
-		   code[cx4].a=cx;                                       
-         }
+		   code[cx4].a=cx;
+		   Endcondition(code[cx4].a);      //用于回填JMP_and跳转地址                                               
+        }
 		else if(sym==SYM_ELSE) //add by ywt,deal with SYM_ELSE,2017.10.20
         {
             getsym();
@@ -795,6 +829,7 @@ void statement(symset fsys)
          }
 		else
 		code[cx1].a = cx;
+		Endcondition(code[cx1].a);    //用于回填JMP_and跳转地址
 	}
 	else if (sym == SYM_BEGIN)
 	{ // block
@@ -1294,6 +1329,18 @@ void interpret()
 			if (stack[top] == 0)
 				pc = i.a;
 			top--;
+			break;
+		case JPC_and: 			//added by ywt
+			if (stack[top] == 0)
+			{
+				pc = i.a;
+			}
+			break;
+		case JPC_or:
+			if (stack[top] != 0)
+			{
+				pc = i.a;
+			}
 			break;
 		// move a parameter from a func's father //added by zjr 17.10.28
 		case PAS:
