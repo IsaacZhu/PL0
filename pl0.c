@@ -901,6 +901,7 @@ void param_enter()
 {
 	int i,pos;
 	mask *mk;
+	
 	for (i=0;i<funcparam;++i)
 	{
 		pos=position(tmpparam[i]); //get position
@@ -920,6 +921,7 @@ void param_enter()
 			mk->address=dx++;
 		}
 	}
+
 }
 
 void nodeinsert()
@@ -991,10 +993,12 @@ void block(symset fsys)
 
 	dx = 3;
 	block_dx = dx;
+	
+	tmptx=tx;
 	nodeinsert();	//create a new node //added by zjr 17.10.27
 	funcparam=0;//initialize funcparam //added by zjr 17.10.27
 
-	mk = (mask*) &table[tx];
+	mk = (mask*) &table[tmptx];
 	mk->address = cx;
 	gen(JMP, 0, 0);
 
@@ -1155,11 +1159,10 @@ void block(symset fsys)
 
 	code[mk->address].a = cx;
 	
-	
-
 	mk->address = cx;
 	tmpaddress=cx;	//record address //added by zjr 17.10.27	
 	
+
 
 	cx0 = cx;
 	gen(INT, 0, block_dx);
@@ -1171,6 +1174,8 @@ void block(symset fsys)
 	gen(OPR, 0, OPR_RET); // return
 	test(fsys, phi, 8); // test for error: Follow the statement is an incorrect symbol.
 	listcode(cx0, cx);
+	
+
 	nodedelete();	    //a procedure has beened analyzed, delete its symbol table
 } // block
 
