@@ -367,7 +367,8 @@ void factor(symset fsys)
 	int i;
 	symset set;
 	
-	test(facbegsys, fsys, 24); // The symbol can not be as the beginning of an expression.
+	//Dong Shi, 10.29, disable "factor cannot appear without a statement" check
+	//test(facbegsys, fsys, 24); // The symbol can not be as the beginning of an expression.
 
 	while (inset(sym, facbegsys))
 	{
@@ -390,7 +391,48 @@ void factor(symset fsys)
 					gen(LOD, level - mk->level, mk->address);
 					break;
 				case ID_PROCEDURE:
-					error(21); // Procedure identifier can not be in an expression.
+					//Dong Shi, 10.29, Handle Procedure
+					//error(21); // Procedure identifier can not be in an expression.
+					//Dong Shi, 10.29, copy (zjr 10.27) "call" work to here
+					//support parameters now //modified by zjr 17.10.27
+					getsym();
+					if (sym == SYM_LPAREN)
+					{
+						getsym();
+						if (sym != SYM_RPAREN)			//call pro()
+						{ 
+							int paramnumber=0;
+							while (sym != SYM_RPAREN)	//not ")"
+							{
+								if (sym == SYM_IDENTIFIER)
+								{ 
+									int pos;
+									pos=position(id);	//get pos'
+									mk = (mask*) &table[pos];
+									if (pos!=0)
+									{
+										gen(PAS,paramnumber++,mk->address); 	//PAS(param_number,var_addr)
+									}
+									else error(11); //use this temporarily.. if I'm happy I'll change it
+									getsym();	//next sym
+									continue;
+								}
+								else if (sym == SYM_COMMA)
+								{
+									getsym();	//next sym
+									continue;
+								}
+								else 			//not "," ! an error occured
+								{
+									error(5); 	//missing ","    //need to be changed to be better
+									break;//Dong Shi, 10.29, fix dead loop
+								}
+							}//while
+							//the while end means that sym==')'
+						}// if sym not rparen
+					}// if sym lparen
+					mk = (mask*) &table[i];
+					gen(CAL, level - mk->level, mk->address);
 					break;
 				} // switch
 			}
@@ -439,7 +481,7 @@ void factor(symset fsys)
 			expression(fsys);
 			gen(OPR, 0, 6);
 		}
-		test(fsys, createset(SYM_LPAREN, SYM_NULL), 23);
+		//test(fsys, createset(SYM_LPAREN, SYM_NULL), 23);
 	} // while
 } // factor
 
@@ -686,6 +728,52 @@ void statement(symset fsys)
 		{
 			error(11); // Undeclared identifier.
 		}
+		//Dong Shi, 10.29, Add support for naked procedure call 
+		else if (table[i].kind == ID_PROCEDURE)
+		{
+			//Dong Shi, 10.29, copy (zjr 10.27) "call" work to here
+			//support parameters now //modified by zjr 17.10.27
+			getsym();
+			if (sym == SYM_LPAREN)
+			{
+				getsym();
+				if (sym != SYM_RPAREN)			//call pro()
+				{ 
+					int paramnumber=0;
+					while (sym != SYM_RPAREN)	//not ")"
+					{
+						if (sym == SYM_IDENTIFIER)
+						{ 
+							int pos;
+							pos=position(id);	//get pos'
+							mk = (mask*) &table[pos];
+							if (pos!=0)
+							{
+								gen(PAS,paramnumber++,mk->address); 	//PAS(param_number,var_addr)
+							}
+							else error(11); //use this temporarily.. if I'm happy I'll change it
+							getsym();	//next sym
+						}
+						else if (sym == SYM_COMMA)
+						{
+							getsym();	//next sym
+							continue;
+						}
+						else 			//not "," ! an error occured
+						{
+							error(5); 	//missing "," 
+							break;//Dong Shi, 10.29, fix dead loop
+							 //need to be changed to be better
+						}
+					}//while
+					//the while end means that sym==')'
+				}// if sym not rparen
+			}// if sym lparen
+			mk = (mask*) &table[i];
+			gen(CAL, level - mk->level, mk->address);
+			getsym();
+			return;
+		}
 		else if (table[i].kind != ID_VARIABLE)
 		{
 			error(12); // Illegal assignment.
@@ -707,67 +795,31 @@ void statement(symset fsys)
 			gen(STO, level - mk->level, mk->address);
 		}
 	}
-	else if (sym == SYM_CALL)
-	{ // procedure call
+	//Dong Shi, 10.29, Add movement of RET
+	else if (sym == SYM_RETURN)
+	{
 		getsym();
-		if (sym != SYM_IDENTIFIER)
+		if(sym == SYM_IDENTIFIER)
 		{
-			error(14); // There must be an identifier to follow the 'call'.
+			expression(fsys);
+			gen(RET, 0, 0);
+		}
+		else if(sym == SYM_NUMBER)
+		{
+			expression(fsys);
+			gen(RET, 0, 0);
 		}
 		else
 		{
-			if (! (i = position(id)))
-			{
-				error(11); // Undeclared identifier.
-			}
-			else if (table[i].kind == ID_PROCEDURE)
-			{
-				mask* mk;
-				//support parameters now //modified by zjr 17.10.27
-				getsym();
-				if (sym == SYM_LPAREN)
-				{
-					getsym();
-					if (sym != SYM_RPAREN)			//call pro()
-					{ 
-						int paramnumber=0;
-						while (sym != SYM_RPAREN)	//not ")"
-						{
-							if (sym == SYM_IDENTIFIER)
-							{ 
-								int pos;
-								pos=position(id);	//get pos'
-								mk = (mask*) &table[pos];
-								if (pos!=0)
-								{
-									gen(PAS,paramnumber++,mk->address); 	//PAS(param_number,var_addr)
-								}
-								else error(11); //use this temporarily.. if I'm happy I'll change it
-								getsym();	//next sym
-							}
-							else if (sym == SYM_COMMA)
-							{
-								getsym();	//next sym
-								continue;
-							}
-							else 			//not "," ! an error occured
-							{
-								error(5); 	//missing ","    //need to be changed to be better
-							}
-						}//while
-						//the while end means that sym==')'
-					}// if sym not rparen
-				}// if sym lparen
-				mk = (mask*) &table[i];
-				gen(CAL, level - mk->level, mk->address);
-			}//else if id procedure
-			else
-			{
-				error(15); // A constant or variable can not be called. 
-			}
-			getsym();
-		}//if procedure identifier
-	}//else if SYM_CALL
+			error(26); //cannot find anything to return
+		}
+		getsym();
+	}
+	//Dong Shi, 10.29, remove call
+	else if (sym == SYM_CALL)
+	{
+		error(27); //call not supported anymore
+	}
 	else if (sym == SYM_IF)
 	{ // if statement
 		getsym();
@@ -1200,6 +1252,8 @@ void interpret()
 	int b;         // program, base, and top-stack register
 	instruction i; // instruction register
 
+	int tmp;
+
 	printf("Begin executing PL/0 program.\n");
 
 	pc = 0;
@@ -1267,6 +1321,7 @@ void interpret()
 			case OPR_NEQ:
 				top--;
 				stack[top] = stack[top] != stack[top + 1];
+				break; //Dong Shi, 10.29, correct known bug (Add break)
 			case OPR_LES:
 				top--;
 				stack[top] = stack[top] < stack[top + 1];
@@ -1274,6 +1329,7 @@ void interpret()
 			case OPR_GEQ:
 				top--;
 				stack[top] = stack[top] >= stack[top + 1];
+				break;//Dong Shi, 10.29, correct known bug (Add break)
 			case OPR_GTR:
 				top--;
 				stack[top] = stack[top] > stack[top + 1];
@@ -1315,6 +1371,16 @@ void interpret()
 			stack[base(stack, b, i.l) + i.a] = stack[top];
 			printf("%d\n", stack[top]);
 			top--;
+			break;
+		//Dong Shi, 10.29, Add OP RET
+		case RET:
+			tmp = stack[top];
+			top = b - 1;
+			pc = stack[top + 3];
+			b = stack[top + 2];
+			++ top;
+			++ top;
+			stack[top] = tmp;
 			break;
 		case CAL:
 			stack[top + 1] = base(stack, b, i.l);
@@ -1380,8 +1446,10 @@ int main ()
 	
 	// create begin symbol sets
 	declbegsys = createset(SYM_CONST, SYM_VAR, SYM_PROCEDURE, SYM_NULL);	//声明符
-	statbegsys = createset(SYM_BEGIN, SYM_CALL, SYM_IF, SYM_WHILE, SYM_NULL);	//状态符
-	facbegsys = createset(SYM_IDENTIFIER, SYM_NUMBER, SYM_LPAREN, SYM_MINUS, SYM_ANTI, SYM_NULL);   //因子(factor)符
+	//Dong Shi, 10.29, remove SYM_CALL, add SYM_RETURN 
+	statbegsys = createset(SYM_BEGIN, SYM_RETURN, SYM_IF, SYM_WHILE, SYM_NULL);	//状态符
+	//Dong Shi, 10.29, Add SYM_PROCEDURE to factor set
+	facbegsys = createset(SYM_IDENTIFIER, SYM_PROCEDURE, SYM_NUMBER, SYM_LPAREN, SYM_MINUS, SYM_ANTI, SYM_NULL);   //因子(factor)符
 
 	err = cc = cx = ll = 0; // initialize global variables
 	ch = ' ';

@@ -71,9 +71,10 @@ enum idtype
 };
 
 //add PAS: for parameter pass //modified by zjr 17.10.27
+//Dong Shi, 10.28, Add RET op
 enum opcode
 {
-	LIT, OPR, LOD, STO, CAL, INT, JMP, JPC,JPC_and,JPC_or,PAS
+	LIT, OPR, LOD, STO, CAL, INT, JMP, JPC,JPC_and,JPC_or,PAS,RET
 };
 
 enum oprcode
@@ -125,8 +126,8 @@ char* err_msg[] =
 /* 23 */    "The symbol can not be followed by a factor.",
 /* 24 */    "The symbol can not be as the beginning of an expression.",
 /* 25 */    "The number is too great.",
-/* 26 */    "",
-/* 27 */    "",
+/* 26 */    "No returnable value.",
+/* 27 */    "Reserved word call is not supported anymore. ",
 /* 28 */    "",
 /* 29 */    "",
 /* 30 */    "",
@@ -182,10 +183,11 @@ char csym[NSYM + 1] =
 };
 
 //汇编指令集
-#define MAXINS   11
+//Dong Shi, 10.29, Add RET
+#define MAXINS   12
 char* mnemonic[MAXINS] =
 {
-	"LIT", "OPR", "LOD", "STO", "CAL", "INT", "JMP", "JPC","JPC_and","JPC_or","PAS"
+	"LIT", "OPR", "LOD", "STO", "CAL", "INT", "JMP", "JPC","JPC_and","JPC_or","PAS", "RET"
 };
 
 typedef struct
