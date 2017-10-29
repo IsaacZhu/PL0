@@ -813,7 +813,7 @@ void statement(symset fsys)
 		{
 			error(26); //cannot find anything to return
 		}
-		getsym();
+		//getsym();
 	}
 	//Dong Shi, 10.29, remove call
 	else if (sym == SYM_CALL)
@@ -850,7 +850,7 @@ void statement(symset fsys)
 		    }
 		    else
 		    {
-			error(16); // 'then' expected.
+				error(16); // 'then' expected.
 		    }
             cx4=cx;
             code[cx1].a=cx+1;

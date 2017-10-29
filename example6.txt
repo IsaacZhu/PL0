@@ -10,7 +10,7 @@ end;
 
 procedure func2(p1);
 begin
-    b := p1;
+    b := p1*10;
 end;
 
 begin
