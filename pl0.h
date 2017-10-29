@@ -126,7 +126,7 @@ char* err_msg[] =
 /* 23 */    "The symbol can not be followed by a factor.",
 /* 24 */    "The symbol can not be as the beginning of an expression.",
 /* 25 */    "The number is too great.",
-/* 26 */    "No returnable value.",
+/* 26 */    "",
 /* 27 */    "Reserved word call is not supported anymore. ",
 /* 28 */    "",
 /* 29 */    "",

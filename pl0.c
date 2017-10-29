@@ -370,8 +370,9 @@ void factor(symset fsys)
 	//Dong Shi, 10.29, disable "factor cannot appear without a statement" check
 	//test(facbegsys, fsys, 24); // The symbol can not be as the beginning of an expression.
 
-	while (inset(sym, facbegsys))
-	{
+	inset(sym, facbegsys);
+	//while (inset(sym, facbegsys))
+	//{
 		if (sym == SYM_IDENTIFIER)
 		{
 			if ((i = position(id)) == 0)
@@ -466,23 +467,26 @@ void factor(symset fsys)
 		else if(sym == SYM_MINUS) // UMINUS,  Expr -> '-' Expr
 		{  
 			 getsym();
-			 expression(fsys);
+			 //expression(fsys);
+			 factor(fsys);
 			 gen(OPR, 0, OPR_NEG);
 		}//================added by lijiquan
 		else if(sym == SYM_ANTI)	//ANTI, Expr -> '!' Expr
 		{
 			getsym();
-			expression(fsys);
+			//expression(fsys);
+			factor(fsys);
 			gen(OPR, 0, OPR_ANTI);
 		}
 		else if(sym == SYM_ODD)
 		{
 			getsym();
-			expression(fsys);
+			//expression(fsys);
+			factor(fsys);
 			gen(OPR, 0, 6);
 		}
 		//test(fsys, createset(SYM_LPAREN, SYM_NULL), 23);
-	} // while
+	//} // while
 } // factor
 
 //////////////////////////////////////////////////////////////////////
@@ -518,7 +522,7 @@ void addictive_expression(symset fsys)			//<===========================name chan
 {
 	int addop;
 	symset set;
-
+	
 	set = uniteset(fsys, createset(SYM_PLUS, SYM_MINUS, SYM_NULL));
 	
 	term(set);
@@ -799,21 +803,8 @@ void statement(symset fsys)
 	else if (sym == SYM_RETURN)
 	{
 		getsym();
-		if(sym == SYM_IDENTIFIER)
-		{
-			expression(fsys);
-			gen(RET, 0, 0);
-		}
-		else if(sym == SYM_NUMBER)
-		{
-			expression(fsys);
-			gen(RET, 0, 0);
-		}
-		else
-		{
-			error(26); //cannot find anything to return
-		}
-		//getsym();
+		expression(fsys);
+		gen(RET, 0, 0);
 	}
 	//Dong Shi, 10.29, remove call
 	else if (sym == SYM_CALL)
@@ -1253,6 +1244,7 @@ void interpret()
 	instruction i; // instruction register
 
 	int tmp;
+	//int itr;
 
 	printf("Begin executing PL/0 program.\n");
 
@@ -1262,6 +1254,12 @@ void interpret()
 	stack[1] = stack[2] = stack[3] = 0;
 	do
 	{
+		// printf("stack:\n");
+		// for(itr = 4; itr <= top+1; ++ itr)printf("%2d ", stack[itr]);
+		// printf("\n");
+		// for(itr = 4; itr <= top-1; ++ itr)printf("   ", stack[itr]);
+		// printf(" ^\n");
+
 		i = code[pc++];
 		switch (i.f)
 		{
@@ -1378,7 +1376,7 @@ void interpret()
 			top = b - 1;
 			pc = stack[top + 3];
 			b = stack[top + 2];
-			++ top;
+			//++ top;
 			++ top;
 			stack[top] = tmp;
 			break;

@@ -1,10 +1,10 @@
-var result,i;
+var result,i,tmp;
 procedure fact(n);
 var nm1;
 begin
 	nm1:=n-1;
 	if n<2 then return 1;
-	else return n*fact(nm1);
+	else return fact(nm1)*n;
 end;
 begin
 	i:=5;
