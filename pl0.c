@@ -397,7 +397,7 @@ void factor(symset fsys)
 					//Dong Shi, 10.29, copy (zjr 10.27) "call" work to here
 					//support parameters now //modified by zjr 17.10.27
 					getsym();
-					if (sym == SYM_LPAREN)
+					/*if (sym == SYM_LPAREN)
 					{
 						getsym();
 						if (sym != SYM_RPAREN)			//call pro()
@@ -432,6 +432,41 @@ void factor(symset fsys)
 							//the while end means that sym==')'
 						}// if sym not rparen
 					}// if sym lparen
+					*/
+				
+					if (sym == SYM_LPAREN)
+					{
+						
+						mask *basemask;
+						basemask=(mask *)&table[position("/pbase")];
+						gen(ASTO,0,basemask->address);	//store top to base
+
+						getsym();
+						
+						if (sym != SYM_RPAREN)			//call pro()
+						{ 
+							symset s1;
+							while (sym != SYM_RPAREN)	//not ")"
+							{
+								if (sym == SYM_COMMA)
+								{
+									getsym();
+									continue;
+								}
+								else
+								{
+									s1=createset(SYM_RPAREN,SYM_COMMA,SYM_NULL); //end when meet ")",","
+									expression(s1);		//analyse the expression in argument
+									gen(APOP,0,basemask->address);	//clear stack
+									//getsym();
+								}
+							}//while
+							//the while end means that sym==')'
+							destroyset(s1);
+						}// if sym not rparen						
+					}// if sym lparen
+					
+
 					mk = (mask*) &table[i];
 					gen(CAL, level - mk->level, mk->address);
 					break;
@@ -743,7 +778,6 @@ void statement(symset fsys)
 				getsym();
 				if (sym != SYM_RPAREN)			//call pro()
 				{ 
-					int paramnumber=0;
 					while (sym != SYM_RPAREN)	//not ")"
 					{
 						if (sym == SYM_IDENTIFIER)
@@ -753,7 +787,7 @@ void statement(symset fsys)
 							mk = (mask*) &table[pos];
 							if (pos!=0)
 							{
-								gen(PAS,paramnumber++,mk->address); 	//PAS(param_number,var_addr)
+							//	gen(PAS,paramnumber++,mk->address); 	//PAS(param_number,var_addr)
 							}
 							else error(11); //use this temporarily.. if I'm happy I'll change it
 							getsym();	//next sym
@@ -1208,7 +1242,33 @@ void block(symset fsys)
 
 
 	cx0 = cx;
+	//put base pointer used in arguments passing into symbol table //added by zjr 17.11.2
+	int pos=position("/pbase");
+	if (pos==0)	// base doesn't exist
+	{
+		tx++;
+		strcpy(table[tx].name, "/pbase");
+		table[tx].kind = ID_POINTER;
+		mk=(mask *)&table[tx];
+		mk->level=level;
+		mk->address=dx;
+		dx++;
+		block_dx++;
+	}
+	else
+	{
+		mk=(mask *)&table[pos];
+		mk->level=level;
+	}
+	
 	gen(INT, 0, block_dx);
+	//gen instructions to load arguments //zjr 17.11.2
+	int i;
+	for (i=0;i<Func->funcparam;++i)
+	{
+		gen(LODA,Func->funcparam,i+1);
+	}
+	
 	set1 = createset(SYM_SEMICOLON, SYM_END, SYM_NULL);
 	set = uniteset(set1, fsys);
 	statement(set);
@@ -1412,8 +1472,21 @@ void interpret()
 			}
 			break;
 		// move a parameter from a func's father //added by zjr 17.10.28
-		case PAS:
+		/*case PAS:
 			stack[top+4+i.l]=stack[base(stack,b,0)+i.a];			
+			break;*/
+		//put argument on stack top to stack[/pbase]	//zjr 11.2
+		case APOP:
+			stack[++stack[base(stack,b,0)+i.a]]=stack[top];
+			top=stack[base(stack,b,0)+i.a];
+			break;
+		//put top into /pbase	//zjr 11.2
+		case ASTO:
+			stack[base(stack,b,0)+i.a]=top;
+			break;
+		//load argument from stack //zjr 11.2
+		case LODA:
+			stack[base(stack,b,0)+i.a+2]=stack[base(stack,b,0)+i.a-i.l-1];
 			break;
 		} // switch
 	}

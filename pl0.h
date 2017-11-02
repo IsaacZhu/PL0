@@ -65,16 +65,21 @@ enum symtype
 	SYM_MOD			// %
 };
 
+//Add ID_POINTER //zjr 17.11.2 
 enum idtype
 {
-	ID_CONSTANT, ID_VARIABLE, ID_PROCEDURE
+	ID_CONSTANT, ID_VARIABLE, ID_PROCEDURE, ID_POINTER
 };
 
 //add PAS: for parameter pass //modified by zjr 17.10.27
 //Dong Shi, 10.28, Add RET op
+//add APOP: get stack[top] to stack[/pbase+1] and recover top to base+1 //zjr 17.11.2
+//add ASTO:store top to /pbase //zjr 11.2
+//add LODA: load argument from stack //zjr 11.2
+//delete PAS	//zjr 11.2
 enum opcode
 {
-	LIT, OPR, LOD, STO, CAL, INT, JMP, JPC,JPC_and,JPC_or,PAS,RET
+	LIT, OPR, LOD, STO, CAL, INT, JMP, JPC,JPC_and,JPC_or,RET,APOP,ASTO,LODA
 };
 
 enum oprcode
@@ -184,10 +189,11 @@ char csym[NSYM + 1] =
 
 //汇编指令集
 //Dong Shi, 10.29, Add RET
-#define MAXINS   12
+//zjr , 11.2 ,Add APOP,ASTO,LODA. Delete PAS
+#define MAXINS   14
 char* mnemonic[MAXINS] =
 {
-	"LIT", "OPR", "LOD", "STO", "CAL", "INT", "JMP", "JPC","JPC_and","JPC_or","PAS", "RET"
+	"LIT", "OPR", "LOD", "STO", "CAL", "INT", "JMP", "JPC","JPC_and","JPC_or", "RET","APOP","ASTO","LODA"
 };
 
 typedef struct
