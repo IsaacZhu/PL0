@@ -773,39 +773,36 @@ void statement(symset fsys)
 			//Dong Shi, 10.29, copy (zjr 10.27) "call" work to here
 			//support parameters now //modified by zjr 17.10.27
 			getsym();
+			//Argument expression available now!//zjr 17.11.2
 			if (sym == SYM_LPAREN)
-			{
+			{	
+				mask *basemask;
+				basemask=(mask *)&table[position("/pbase")];
+				gen(ASTO,0,basemask->address);	//store top to base
+
 				getsym();
+						
 				if (sym != SYM_RPAREN)			//call pro()
 				{ 
+					symset s1;
 					while (sym != SYM_RPAREN)	//not ")"
 					{
-						if (sym == SYM_IDENTIFIER)
-						{ 
-							int pos;
-							pos=position(id);	//get pos'
-							mk = (mask*) &table[pos];
-							if (pos!=0)
-							{
-							//	gen(PAS,paramnumber++,mk->address); 	//PAS(param_number,var_addr)
-							}
-							else error(11); //use this temporarily.. if I'm happy I'll change it
-							getsym();	//next sym
-						}
-						else if (sym == SYM_COMMA)
-						{
-							getsym();	//next sym
+						if (sym == SYM_COMMA)
+						{	
+							getsym();
 							continue;
 						}
-						else 			//not "," ! an error occured
+						else
 						{
-							error(5); 	//missing "," 
-							break;//Dong Shi, 10.29, fix dead loop
-							 //need to be changed to be better
+							s1=createset(SYM_RPAREN,SYM_COMMA,SYM_NULL); //end when meet ")",","
+							expression(s1);		//analyse the expression in argument
+							gen(APOP,0,basemask->address);	//clear stack
+							//getsym();
 						}
 					}//while
 					//the while end means that sym==')'
-				}// if sym not rparen
+					destroyset(s1);
+				}// if sym not rparen						
 			}// if sym lparen
 			mk = (mask*) &table[i];
 			gen(CAL, level - mk->level, mk->address);
