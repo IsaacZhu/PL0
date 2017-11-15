@@ -60,15 +60,17 @@ enum symtype
 	//=================added by lijiquan
 	SYM_AND,
 	SYM_OR,
-	
+	SYM_LOGIEQU,
+
 	SYM_BITXOR, 	// ^
 	SYM_MOD			// %
 };
 
 //Add ID_POINTER //zjr 17.11.2 
+//Add array //ljq
 enum idtype
 {
-	ID_CONSTANT, ID_VARIABLE, ID_PROCEDURE, ID_POINTER
+	ID_CONSTANT, ID_VARIABLE, ID_PROCEDURE, ID_POINTER, ID_ARRAY
 };
 
 //add PAS: for parameter pass //modified by zjr 17.10.27
@@ -79,13 +81,13 @@ enum idtype
 //delete PAS	//zjr 11.2
 enum opcode
 {
-	LIT, OPR, LOD, STO, CAL, INT, JMP, JPC,JPC_and,JPC_or,RET,APOP,ASTO,LODA
+	LIT, OPR, LOD, STO, CAL, INT, JMP, JPC,JPC_and,JPC_or,RET,APOP,ASTO,LODA,LEA, LODAR, STOAR
 };
 
 enum oprcode
 {
 	OPR_RET, OPR_NEG, OPR_ADD, OPR_MIN,
-	OPR_MUL, OPR_DIV, OPR_ODD, OPR_EQU,
+	OPR_MUL, OPR_DIV, OPR_ODD, OPR_LOGIEQU,
 	OPR_NEQ, OPR_LES, OPR_LEQ, OPR_GTR,
 	OPR_GEQ, 
 	//================added by lijiquan
@@ -133,9 +135,9 @@ char* err_msg[] =
 /* 25 */    "The number is too great.",
 /* 26 */    "",
 /* 27 */    "Reserved word call is not supported anymore. ",
-/* 28 */    "",
-/* 29 */    "",
-/* 30 */    "",
+/* 28 */    "Missing the dimension width of the array",
+/* 29 */    "Missing ']'",
+/* 30 */    "Missing '[' or dimension",
 /* 31 */    "",
 /* 32 */    "There are too many levels."
 };
@@ -190,10 +192,10 @@ char csym[NSYM + 1] =
 //汇编指令集
 //Dong Shi, 10.29, Add RET
 //zjr , 11.2 ,Add APOP,ASTO,LODA. Delete PAS
-#define MAXINS   14
+#define MAXINS   17
 char* mnemonic[MAXINS] =
 {
-	"LIT", "OPR", "LOD", "STO", "CAL", "INT", "JMP", "JPC","JPC_and","JPC_or", "RET","APOP","ASTO","LODA"
+	"LIT", "OPR", "LOD", "STO", "CAL", "INT", "JMP", "JPC","JPC_and","JPC_or", "RET","APOP","ASTO","LODA", "LEA", "LODAR", "STOAR"
 };
 
 typedef struct
@@ -237,4 +239,27 @@ int tmptx=0;		//added by zjr 17.10.28
 
 int cx6[10],cx7[10];
 int sign_and=0;int sign_or=0;int sign_condition=0;//----add by ywt 2017.10.25
+
+//ljq
+typedef struct 
+{
+	char name[MAXIDLEN + 1];
+	int kind;
+	short level;
+	short address;
+} array;
+
+typedef struct 
+{
+	char name[MAXIDLEN + 1];
+	int kind;
+	int depth;
+} dimensionHead;
+
+typedef struct 
+{
+	char name[MAXIDLEN + 1];
+	int kind;
+	int width;
+} dimension;
 // EOF PL0.h

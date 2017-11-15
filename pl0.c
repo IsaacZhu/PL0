@@ -195,6 +195,19 @@ void getsym(void)
 			sym = SYM_BITOR;	//|
 		}
 	}
+	else if (ch == '=')			//ljq
+	{
+		getch();
+		if(ch == '=')
+		{
+			sym = SYM_LOGIEQU;	//==
+			getch();
+		}
+		else
+		{
+			sym = SYM_EQU;		//=
+		}
+	}
 	else if (ch == '^')
 	{
 		getch();
@@ -263,6 +276,10 @@ int dx;  // data allocation index
 void enter(int kind)
 {
 	mask* mk;
+	array* arr;
+	dimensionHead* dhead;
+	dimension* dim;
+	int arraySize = 1;
 
 	tx++;
 	strcpy(table[tx].name, id);
@@ -287,6 +304,46 @@ void enter(int kind)
 		mk = (mask*) &table[tx];
 		mk->level = level; 
 		break;
+	case ID_ARRAY:					//<===================added for array===============
+		arr = (array *) &table[tx];
+		arr->level = level;
+		arr->address = dx;
+		tx++;
+		strcpy(table[tx].name, id);
+		table[tx].kind = kind;
+		dhead = (dimensionHead*) &table[tx];
+		dhead->depth = 0;
+		do
+		{
+			dhead->depth ++;
+			getsym();
+			if (sym == SYM_NUMBER)
+			{
+				tx ++;
+				strcpy(table[tx].name, id);
+				table[tx].kind = kind;
+				dim = (dimension*) &table[tx];
+				dim->width = num;
+				arraySize = arraySize * num;
+				getsym();
+			}
+			else
+			{
+				error(28);
+			}
+
+			if (sym == SYM_RSBRAC)
+			{
+				getsym();
+			}
+			else
+			{
+				error(29);
+			}
+		}
+		while(sym == SYM_LSBRAC);
+		dx = dx + arraySize;
+		break;
 	} // switch
 } // enter
 
@@ -298,6 +355,10 @@ int position(char* id)
 	strcpy(table[0].name, id);
 	i = tx + 1;
 	while (strcmp(table[--i].name, id) != 0);
+	if(table[i].kind == ID_ARRAY){			//倒着找的，数组要特别处理
+		while (strcmp(table[i - 1].name, id) == 0)
+			i --;
+	}
 	return i;
 } // position
 
@@ -309,7 +370,7 @@ void constdeclaration()
 	if (sym == SYM_IDENTIFIER)
 	{
 		getsym();
-		if (sym == SYM_EQU || sym == SYM_BECOMES)
+		if (sym == SYM_EQU || sym == SYM_BECOMES)	//可能有Bug
 		{
 			if (sym == SYM_BECOMES)
 				error(1); // Found ':=' when expecting '='.
@@ -337,8 +398,15 @@ void vardeclaration(void)
 {
 	if (sym == SYM_IDENTIFIER)
 	{
-		enter(ID_VARIABLE);
 		getsym();
+		if (sym == SYM_LSBRAC)
+		{
+			enter(ID_ARRAY);	//ljq
+		}
+		else
+		{
+			enter(ID_VARIABLE);
+		}
 	}
 	else
 	{
@@ -364,8 +432,8 @@ void factor(symset fsys)
 {
 	void expression(symset fsys);
 	void logi_or_expression(symset fsys);
-	int i;
-	symset set;
+	int i, depth;/**/
+	symset set, set1;
 	
 	//Dong Shi, 10.29, disable "factor cannot appear without a statement" check
 	//test(facbegsys, fsys, 24); // The symbol can not be as the beginning of an expression.
@@ -384,6 +452,9 @@ void factor(symset fsys)
 				switch (table[i].kind)
 				{
 					mask* mk;
+					array *arr;/**/
+					dimensionHead* dhead;
+					dimension* dim;
 				case ID_CONSTANT:
 					gen(LIT, 0, table[i].value);
 					break;
@@ -469,6 +540,47 @@ void factor(symset fsys)
 
 					mk = (mask*) &table[i];
 					gen(CAL, level - mk->level, mk->address);
+					break;
+
+				case ID_ARRAY:
+
+					arr = (array*) &table[i];
+					gen(LEA, level - arr->level, arr->address);
+					i ++;
+					dhead = (dimensionHead*) &table[i];
+					i ++;
+					getsym();
+					if(sym != SYM_LSBRAC)
+					{
+						error(30);
+					}
+					depth = 1;	
+					getsym();
+					set1 = createset(SYM_RSBRAC, SYM_LSBRAC, SYM_NULL);
+					set = uniteset(set1, fsys);
+					expression(set);
+					while(sym == SYM_RSBRAC && depth < dhead->depth)
+					{
+						getsym();
+						if(sym != SYM_LSBRAC)
+						{
+							error(30);
+						}
+						getsym();
+						i ++;
+						depth ++;
+						dim = (dimension*) &table[i];
+						gen(LIT, 0, dim->width);
+						gen(OPR, 0, OPR_MUL);
+						expression(set);
+						gen(OPR, 0, OPR_ADD);
+					}
+					gen(OPR, 0, OPR_ADD);
+					gen(LODAR, 0, 0);
+					destroyset(set);
+					destroyset(set1);
+					//printf("array finished!\n");
+					/**************************a load instruction to be loaded*******************/
 					break;
 				} // switch
 			}
@@ -713,8 +825,8 @@ void condition(symset fsys)//---change by ywt,2017.10.25
 			expression(fsys);
 			switch (relop)
 			{
-			case SYM_EQU:
-				gen(OPR, 0, OPR_EQU);
+			case SYM_LOGIEQU:			//modified by ljq
+				gen(OPR, 0, OPR_LOGIEQU);
 				break;
 			case SYM_NEQ:
 				gen(OPR, 0, OPR_NEQ);
@@ -757,12 +869,15 @@ void Endcondition(int JPcx)//add by ywt 2017.10.25,用于回填JMP_and跳转地�
 //////////////////////////////////////////////////////////////////////
 void statement(symset fsys)
 {
-	int i, cx1, cx2,cx3,cx4,cx5;
+	int i, cx1, cx2,cx3,cx4,cx5,depth;
 	symset set1, set;
 
 	if (sym == SYM_IDENTIFIER)
 	{ // variable assignment
 		mask* mk;
+		array* arr;
+		dimensionHead* dhead;
+		dimension* dim;
 		if (! (i = position(id)))
 		{
 			error(11); // Undeclared identifier.
@@ -809,12 +924,55 @@ void statement(symset fsys)
 			getsym();
 			return;
 		}
-		else if (table[i].kind != ID_VARIABLE)
+		
+		else if (table[i].kind != ID_VARIABLE && table[i].kind != ID_ARRAY)	//IF CONST
 		{
 			error(12); // Illegal assignment.
 			i = 0;
 		}
 		getsym();
+		if(table[i].kind == ID_ARRAY)	//处理数组取值
+		{
+			arr = (array*) &table[i];
+			gen(LEA, level - arr->level, arr->address);
+			i ++;
+			dhead = (dimensionHead*) &table[i];
+			i ++;
+			if(sym != SYM_LSBRAC)
+			{
+				error(30);
+			}
+			depth = 1;	
+			getsym();
+			set1 = createset(SYM_RSBRAC, SYM_LSBRAC, SYM_NULL);
+			set = uniteset(set1, fsys);
+			expression(set);
+			while(sym == SYM_RSBRAC && depth < (dhead->depth))
+			{
+				getsym();
+				if(sym != SYM_LSBRAC)
+				{
+					error(30);
+				}
+				getsym();
+				i ++;
+				depth ++;
+				dim = (dimension*) &table[i];
+				gen(LIT, 0, dim->width);
+				gen(OPR, 0, OPR_MUL);
+				expression(set);
+				gen(OPR, 0, OPR_ADD);
+			}
+			gen(OPR, 0, OPR_ADD);
+			destroyset(set);
+			destroyset(set1);
+			getsym();
+		}//IF ID_ARRAY
+		else  	//id_variable
+		{		
+			mk = (mask*) &table[i];
+		}
+
 		if (sym == SYM_BECOMES)
 		{
 			getsym();
@@ -823,13 +981,21 @@ void statement(symset fsys)
 		{
 			error(13); // ':=' expected.
 		}
+
 		expression(fsys);
-		mk = (mask*) &table[i];
-		if (i)
+		if(table[i].kind == ID_VARIABLE)
 		{
-			gen(STO, level - mk->level, mk->address);
+			if (i)
+			{
+				gen(STO, level - mk->level, mk->address);
+			}
 		}
-	}
+		else if (table[i].kind == ID_ARRAY)
+		{
+			gen(STOAR, 0, 0);
+			/* a instuction of storing to be added ***************************************/
+		}
+	}//ID_VARIABLE
 	//Dong Shi, 10.29, Add movement of RET
 	else if (sym == SYM_RETURN)
 	{
@@ -1369,7 +1535,7 @@ void interpret()
 			case OPR_ODD:
 				stack[top] %= 2;
 				break;
-			case OPR_EQU:
+			case OPR_LOGIEQU:
 				top--;
 				stack[top] = stack[top] == stack[top + 1];
 				break;
@@ -1485,6 +1651,18 @@ void interpret()
 		case LODA:
 			stack[base(stack,b,0)+i.a+2]=stack[base(stack,b,0)+i.a-i.l-1];
 			break;
+		case LEA:
+			stack[++top] = base(stack, b, i.l) + i.a;
+			break;
+		case LODAR:
+			top ++;
+			stack[top] = stack[stack[top - 1]];
+			break;
+		case STOAR:
+			stack[stack[top - 1]] = stack[top];
+			printf("%d\n", stack[top]);
+			top = top - 2;
+			break;
 		} // switch
 	}
 	while (pc);
@@ -1510,10 +1688,10 @@ int main ()
 
 	//创建记号流（词法分析）
 	phi = createset(SYM_NULL);
-	relset = createset(SYM_EQU, SYM_NEQ, SYM_LES, SYM_LEQ, SYM_GTR, SYM_GEQ, SYM_NULL);	//关系符集
+	relset = createset(SYM_LOGIEQU, SYM_NEQ, SYM_LES, SYM_LEQ, SYM_GTR, SYM_GEQ, SYM_NULL);	//关系符集
 	
 	// create begin symbol sets
-	declbegsys = createset(SYM_CONST, SYM_VAR, SYM_PROCEDURE, SYM_NULL);	//声明符
+	declbegsys = createset(SYM_CONST, SYM_VAR, SYM_PROCEDURE, SYM_NULL, SYM_LSBRAC, SYM_RSBRAC);	//声明符
 	//Dong Shi, 10.29, remove SYM_CALL, add SYM_RETURN 
 	statbegsys = createset(SYM_BEGIN, SYM_RETURN, SYM_IF, SYM_WHILE, SYM_NULL);	//状态符
 	//Dong Shi, 10.29, Add SYM_PROCEDURE to factor set
