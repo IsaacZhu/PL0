@@ -10,7 +10,8 @@ end;
 
 procedure func2(p1);
 begin
-    b := p1*10;
+    if p1 > 99 then exit;
+    else b := p1*10;
 end;
 
 begin
@@ -18,6 +19,6 @@ begin
     b := 2;
 	c := 3;
     a := 1 + func1(a,b,c);
-    c := 99;
+    c := 100;
     func2(c);
 end.
