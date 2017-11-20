@@ -11,6 +11,95 @@
 #include "pl0.h"
 #include "set.c"
 
+void testtable()	//print table //zjr 11.17 //test code
+{
+	mask *mk;
+	array *arr;
+	dimensionHead *dhead;
+	dimension *dim;
+	int flag=0;
+	int i;
+	//tmppram mode
+	/*for (i=0;i<funcparam;++i)	//tx for symbol table   funcparam for tmpparam
+	{
+		if (tmpparam[i].kind==ID_VARIABLE)
+		{
+			flag=0;
+			mk=(mask *)&tmpparam[i];
+			printf("%d :variable %s\n",i,mk->name);
+		}
+		else if (tmpparam[i].kind==ID_ARRAY)
+		{
+			if (flag==0)	//head
+			{
+				arr=(array *)&tmpparam[i];
+				printf("%d :array %s level:%d\n",i,arr->name,arr->level);
+				flag=1;
+			}
+			else if (flag==1)	//dim head
+			{
+				dhead=(dimensionHead *)&tmpparam[i];
+				printf("%d :array %s depth:%d\n",i,dhead->name,dhead->depth);
+				flag=2;
+			}
+			else
+			{
+				dim=(dimension *)&tmpparam[i];
+				printf("%d :array %s width:%d\n",i,dim->name,dim->width);
+			}
+		}
+	}
+*/
+	//symbol table mode
+	for (i=0;i<=tx;++i)	//tx for symbol table   funcparam for tmpparam
+	{
+		if (table[i].kind==ID_VARIABLE)
+		{
+			flag=0;
+			mk=(mask *)&table[i];
+			printf("%d :variable %s\n",i,mk->name);
+		}
+		else if (table[i].kind==ID_ARRAY)
+		{
+			if (flag==0)	//head
+			{
+				arr=(array *)&table[i];
+				printf("%d :array %s level:%d\n",i,arr->name,arr->level);
+				flag=1;
+			}
+			else if (flag==1)	//dim head
+			{
+				dhead=(dimensionHead *)&table[i];
+				printf("%d :array %s depth:%d\n",i,dhead->name,dhead->depth);
+				flag=2;
+			}
+			else
+			{
+				dim=(dimension *)&table[i];
+				printf("%d :array %s width:%d\n",i,dim->name,dim->width);
+			}
+		}
+		else if (table[i].kind==ID_PARRAY)
+		{
+			printf("%d :parray %s \n",i,table[i].name);
+			flag=0;
+		}
+		else
+		{
+			mk=(mask *)&table[i];
+			printf("%d :%d %s level:%d addr:%d\n",i,mk->kind,mk->name,mk->level,mk->address);
+			flag=0;
+		}
+	}//table mode
+	
+	printf("dx is %d ;tx is %d\n",dx,tx);
+	//exit(2);
+}
+
+void mytest()	//for test //zjr 11.19
+{
+	printf("here\n");//tc
+}
 //////////////////////////////////////////////////////////////////////
 // print error message.
 void error(int n)
@@ -268,8 +357,8 @@ void test(symset s1, symset s2, int n)
 } // test
 
 //////////////////////////////////////////////////////////////////////
-int dx;  // data allocation index
-
+//int dx;  // data allocation index
+//moved to pl0.h //zjr 11.17
 
 
 // enter object(constant, variable or procedre) into table.
@@ -356,12 +445,37 @@ int position(char* id)
 	i = tx + 1;
 	while (strcmp(table[--i].name, id) != 0);
 	if(table[i].kind == ID_ARRAY){			//倒着找的，数组要特别处理
-		while (strcmp(table[i - 1].name, id) == 0)
+		while (strcmp(table[i - 1].name, id) == 0 && i!=1)	//modified by zjr //11.17
 			i --;
+		if (i==1)	//has been arrived head of symbol table
+		{
+			if (table[i].kind==ID_ARRAY && strcmp(table[1].name, id) == 0)	return 1;
+			else return 0;
+		}
+	}
+	//handle PARRAY //zjr 11.19 //#Z15
+	else if(table[i].kind==ID_PARRAY)
+	{
+		while (strcmp(table[i - 1].name, id) == 0 && i!=1)	
+			i --;
+		if (i==1)
+		{
+			if (table[i].kind==ID_PARRAY && strcmp(table[1].name, id) == 0)	return 1;
+			else return 0;
+		}
 	}
 	return i;
 } // position
 
+//added by zjr //for arguments passing //11.17 //#Z3
+int old_position(char *id)
+{
+	int i;
+	strcpy(table[0].name, id);
+	i = tx + 1;
+	while (strcmp(table[--i].name, id) != 0);
+	return i;
+}
 //////////////////////////////////////////////////////////////////////
 //declare a const 
 //called by block()
@@ -446,6 +560,8 @@ void factor(symset fsys)
 			if ((i = position(id)) == 0)
 			{
 				error(11); // Undeclared identifier.
+				printf("%s\n",id);
+				testtable();
 			}
 			else
 			{
@@ -507,7 +623,10 @@ void factor(symset fsys)
 				
 					if (sym == SYM_LPAREN)
 					{
-						
+						int *paralist=nodeplist(id);	//get paralist	//zjr 11.17	//#Z14
+						int pnum=0;			//record parameters number
+						int papos,j,paramnum;
+						paramnum=nodeparam(id);
 						mask *basemask;
 						basemask=(mask *)&table[position("/pbase")];
 						gen(ASTO,0,basemask->address);	//store top to base
@@ -519,18 +638,73 @@ void factor(symset fsys)
 							symset s1;
 							while (sym != SYM_RPAREN)	//not ")"
 							{
-								if (sym == SYM_COMMA)
+								if (sym == SYM_COMMA)	
 								{
 									getsym();
 									continue;
 								}
-								else
+								else					//#1
 								{
-									s1=createset(SYM_RPAREN,SYM_COMMA,SYM_NULL); //end when meet ")",","
-									expression(s1);		//analyse the expression in argument
-									gen(APOP,0,basemask->address);	//clear stack
-									//getsym();
-								}
+									//handle array type parameter	//zjr 11.17 //#Z14
+									if (paralist[pnum]==ID_ARRAY) //#2
+									{
+										papos=position(id);
+										if (papos==0)	error(11);	//undeclared
+										
+										else if (table[papos].kind==ID_PARRAY)
+										{
+											arr=(array *)&table[papos];
+											gen(LOD,level-arr->level,arr->address);			//load start address of array from stack
+											gen(APOP,0,basemask->address);
+											papos++;
+											dhead=(dimensionHead *)&table[papos];	//to get num of dimension
+											gen(LIT,0,dhead->depth);
+											gen(APOP,0,basemask->address);
+											for (j=0;j<(dhead->depth);++j)		//put dimensions to stack
+											{
+												papos++;
+												dim=(dimension *)&table[papos];
+												gen(LIT,0,dim->width);
+												gen(APOP,0,basemask->address);
+											}
+											pnum+=(dhead->depth+2);	
+											getsym();
+										}
+										else if (table[papos].kind==ID_ARRAY)
+										{
+											arr=(array *)&table[papos];
+											gen(LEA,level-arr->level,arr->address);
+											gen(APOP,0,basemask->address);
+											papos++;
+											dhead=(dimensionHead *)&table[papos];	//to get num of dimension
+											gen(LIT,0,dhead->depth);
+											gen(APOP,0,basemask->address);
+											for (j=0;j<(dhead->depth);++j)		//put dimensions to stack
+											{
+												papos++;
+												dim=(dimension *)&table[papos];
+												gen(LIT,0,dim->width);
+												gen(APOP,0,basemask->address);
+											}
+											pnum+=(dhead->depth+2);				
+											getsym();
+										}
+										else error(31);				//type mismatch
+									} //#2
+									//variable
+									else
+									{
+										s1=createset(SYM_RPAREN,SYM_COMMA,SYM_NULL); //end when meet ")",","
+										expression(s1);		//analyse the expression in argument
+										gen(APOP,0,basemask->address);	//clear stack
+										//getsym();
+									}//else variable
+									if (pnum>paramnum)	//parameters not compatible 
+									{
+										error(31);
+										break;
+									}
+								}//else not comma #1
 							}//while
 							//the while end means that sym==')'
 							destroyset(s1);
@@ -581,6 +755,50 @@ void factor(symset fsys)
 					destroyset(set1);
 					//printf("array finished!\n");
 					/**************************a load instruction to be loaded*******************/
+					break;
+				//added by zjr //11.17 //#Z6
+				//if it's an array parameter instead of normal array
+				case ID_PARRAY:
+					mk=(mask *)&table[i];
+					gen(LOD,level-mk->level,mk->address);	//get the start address of array
+					//int ppos=0;
+					i=0;
+					while (strcmp(table[++i].name, mk->name) != 0);	//get position of this array
+					i++;
+					//copy ljq's work
+					dhead = (dimensionHead*) &table[i];
+					i ++;
+					getsym();
+					if(sym != SYM_LSBRAC)
+					{
+						error(30);
+					}
+					depth = 1;	
+					getsym();
+					set1 = createset(SYM_RSBRAC, SYM_LSBRAC, SYM_NULL);
+					set = uniteset(set1, fsys);
+					expression(set);
+					while(sym == SYM_RSBRAC && depth < dhead->depth)
+					{
+						getsym();
+						if(sym != SYM_LSBRAC)
+						{
+							error(30);
+						}
+						getsym();
+						i ++;
+						depth ++;
+						dim = (dimension*) &table[i];
+						gen(LIT, 0, dim->width);
+						gen(OPR, 0, OPR_MUL);
+						expression(set);
+						gen(OPR, 0, OPR_ADD);
+					}
+					gen(OPR, 0, OPR_ADD);
+					gen(LODAR, 0, 0);
+					destroyset(set);
+					destroyset(set1);
+
 					break;
 				} // switch
 			}
@@ -911,7 +1129,7 @@ void statement(symset fsys)
 						{
 							s1=createset(SYM_RPAREN,SYM_COMMA,SYM_NULL); //end when meet ")",","
 							expression(s1);		//analyse the expression in argument
-							gen(APOP,0,basemask->address);	//clear stack
+							//gen(APOP,0,basemask->address);	//clear stack
 							//getsym();
 						}
 					}//while
@@ -924,8 +1142,8 @@ void statement(symset fsys)
 			getsym();
 			return;
 		}
-		
-		else if (table[i].kind != ID_VARIABLE && table[i].kind != ID_ARRAY)	//IF CONST
+		//support ID_PRRAY //zjr //11.17 //#Z8
+		else if (table[i].kind != ID_VARIABLE && table[i].kind != ID_ARRAY && table[i].kind != ID_PARRAY)	//IF CONST
 		{
 			error(12); // Illegal assignment.
 			i = 0;
@@ -968,6 +1186,48 @@ void statement(symset fsys)
 			destroyset(set1);
 			getsym();
 		}//IF ID_ARRAY
+		//added by zjr //11.17 //#Z8
+		//handle that if a left value is array parameter
+		else if (table[i].kind==ID_PARRAY)
+		{
+			mk=(mask *)&table[i];
+			gen(LOD,level-mk->level,mk->address);	//get the start address of array
+			int ppos=0;
+			while (strcmp(table[++ppos].name, mk->name) != 0);	//get position of this array
+			ppos++;
+			//copy ljq's work
+			dhead = (dimensionHead*) &table[ppos];
+			ppos ++;
+			if(sym != SYM_LSBRAC)
+			{
+				error(30);
+			}
+			depth = 1;	
+			getsym();
+			set1 = createset(SYM_RSBRAC, SYM_LSBRAC, SYM_NULL);
+			set = uniteset(set1, fsys);
+			expression(set);
+			while(sym == SYM_RSBRAC && depth < dhead->depth)
+			{
+				getsym();
+				if(sym != SYM_LSBRAC)
+				{
+					error(30);
+				}
+				getsym();
+				ppos ++;
+				depth ++;
+				dim = (dimension*) &table[ppos];
+				gen(LIT, 0, dim->width);
+				gen(OPR, 0, OPR_MUL);
+				expression(set);
+				gen(OPR, 0, OPR_ADD);
+			}
+			gen(OPR, 0, OPR_ADD);
+			destroyset(set);
+			destroyset(set1);
+			getsym();
+		}
 		else  	//id_variable
 		{		
 			mk = (mask*) &table[i];
@@ -990,7 +1250,8 @@ void statement(symset fsys)
 				gen(STO, level - mk->level, mk->address);
 			}
 		}
-		else if (table[i].kind == ID_ARRAY)
+		//add situation of ID_PARRAY //11.17 //zjr //#Z8
+		else if (table[i].kind == ID_ARRAY||table[i].kind == ID_PARRAY)
 		{
 			gen(STOAR, 0, 0);
 			/* a instuction of storing to be added ***************************************/
@@ -1007,12 +1268,6 @@ void statement(symset fsys)
 	else if (sym == SYM_CALL)
 	{
 		error(27); //call not supported anymore
-	}
-	//Dong Shi, 11.18, 为 exit 指令添加动作
-	else if (sym == SYM_EXIT)
-	{
-		getsym();
-		gen(JMP, 0, 0);
 	}
 	else if (sym == SYM_IF)
 	{ // if statement
@@ -1145,29 +1400,100 @@ void initchainlist()
 //enter parameters to symbol table
 void param_enter()
 {
-	int i,pos;
+	int i,pos,dim,j,apos;
 	mask *mk;
-	
-	for (i=0;i<funcparam;++i)
+	dimensionHead *dhead;
+	array *arr;
+	//for (i=0;i<funcparam;++i)	//modified by zjr 11.17
+	i=0;
+	while(i<funcparam)
 	{
-		pos=position(tmpparam[i]); //get position
+		pos=position(tmpparam[i].name); //get position
 		if (pos==0)	//this parameter don't exist ->  build a new table item
-		{
-			strcpy(table[++tx].name,tmpparam[i]);
-			table[tx].kind=ID_VARIABLE;
-			mk=(mask *)&table[tx];
-			mk->level=level;
-			mk->address=dx++;	//data +1	
-		}
+		{	
+			//support array now //zjr 11.17 #Z2
+			if (tmpparam[i].kind==ID_ARRAY)
+			{
+				//array name
+				memcpy(&table[++tx],&tmpparam[i],1*sizeof(comtab));
+				mk=(mask *)&table[i];
+				arr=(array *)&tmpparam[i];
+				mk->kind=ID_PARRAY;			//zjr 11.19 #Z17
+				mk->level=level;
+				mk->address=dx;
+				dx++;
+				i++;
+				//read dimhead
+				dhead=(dimensionHead *)&tmpparam[i];
+				memcpy(&table[++tx],&tmpparam[i],1*sizeof(comtab));
+				table[tx].kind=ID_PARRAY;	//zjr 11.19 #Z17
+				dx++;
+				//i++;
+				//read width of every dim
+				for (j=0;j<dhead->depth;++j)	
+				{
+					i++;
+					memcpy(&table[++tx],&tmpparam[i],1*sizeof(comtab));
+					table[tx].kind=ID_PARRAY;	//zjr 11.19 #Z17
+					//i++;
+					dx++;
+				}
+			}//if id_array
+			//it's ID_VARAIBLE
+			else
+			{
+				strcpy(table[++tx].name,tmpparam[i].name);
+				table[tx].kind=ID_VARIABLE;
+				mk=(mask *)&table[tx];
+				mk->level=level;
+				mk->address=dx++;	//data +1	
+			}
+		}//if pos==0
 		else	//else -> change its level and address, make it a local parameter
 		{
-			table[pos].kind=ID_VARIABLE;
-			mk=(mask *)&table[pos];
-			mk->level=level;
-			mk->address=dx++;
-		}
-	}
+			if (tmpparam[i].kind==ID_ARRAY)	//read an array need to 
+			{
+				//read array head
+				//cover the former array //#Z17
+				//tmpparam[i].kind=ID_PARRAY;
+				arr=(array *)&table[pos];				
+				arr->level=level;
+				arr->address=dx;	
+				arr->kind=ID_PARRAY;
+				//memcpy(&table[++tx],&tmpparam[i],1*sizeof(comtab));
+				//table[tx].kind=ID_PARRAY;	//a new term
+				//mk=(mask *)&table[tx];
+				//mk->level=level;
+				//mk->address=dx;
+				apos=pos;
+				apos++;
+				dx++;
+				//read dim head
+				//dhead=(dimensionHead *)&tmpparam[i];
+				dhead=(dimensionHead *)&table[apos];
+				//#Z17
+				dhead->kind=ID_PARRAY;
+				dx++;
+				for (j=0;j<dhead->depth;++j)	
+				{
+					apos++;
+					table[apos].kind=ID_PARRAY;	//zjr 11.19 #Z17
+					dx++;
+				}
 
+				i+=(dhead->depth+1);
+				//dx+=(dhead->depth+1);
+			}
+			else	//It's variable.Cover it!
+			{
+				table[pos].kind=ID_VARIABLE;
+				mk=(mask *)&table[pos];
+				mk->level=level;
+				mk->address=dx++;
+			}
+		}//else
+		++i;
+	}//while
 }
 
 void nodeinsert()
@@ -1175,11 +1501,14 @@ void nodeinsert()
 	stnode *P; //new node
 	stnode *Q;
 
-	Q=&stlist;
+	int i;
+	int *paralist;
+	/*Q=&stlist;	//#Z11
 	while (Q->next!=NULL)//TO TAIL
 	{
 		Q=Q->next;
-	}
+	}*/
+	Q=Func;
 	Q->next=(stnode *)malloc(sizeof(stnode));
 	P=Q->next;
 	P->stable=(comtab *)calloc(TXMAX,sizeof(comtab));	
@@ -1188,13 +1517,21 @@ void nodeinsert()
 	table=P->stable;	//point to new symbol table
 	param_enter();		//copy parameters
 	P->level=level; 
-	P->next=NULL;
+	P->next=Q->next;	//#Z11
 	P->funcparam=funcparam;
 	P->localtx=tx;		//need more consideration
-	strcpy(P->funcname,funcname);	
+	strcpy(P->funcname,funcname);
+	
+	//add paralist to new node	//zjr 11.17 	//#Z13
+	paralist=P->paralist;
+	for (i=0;i<funcparam;++i)
+	{
+		paralist[i]=tmpparam[i].kind;
+	}	
 	Func=P;			//control
 }
-
+//old node stay in list instead of deleting //in order to get paralist 
+//zjr 11.17//#Z10
 void nodedelete()
 {
 	stnode *P;
@@ -1204,27 +1541,50 @@ void nodedelete()
 	{
 		return;
 	}
-	Q=P->next;
+	/*Q=P->next;
 	while (Q->next!=NULL) //look for tail
 	{
 		P=P->next;
 		Q=Q->next;
 	}
 	strcpy(funcname,Q->funcname);
-	free(Q);
-	P->next=NULL;
+	free(Q);*/
+	Q=Func;
+	while (P->next!=Q) //look for prior of Q
+	{
+		P=P->next;
+	}
+	//P->next=NULL;
 	table=P->stable;
 	tx=P->localtx;
 	Func=P;		    //change control	
 }
 
-void nodeparam()
+//get a paralist from one of list node //zjr 11.17 //#Z12
+//input : name of procedure
+//output : int *paralist
+int* nodeplist(char *name)
 {
 	stnode *P;
 	P=&stlist;
-	while (P->next != NULL) P=P->next;
-	if (P==&stlist) return; 	//no function error
-	P->funcparam=funcparam;
+	while(P!=NULL && strcmp(P->funcname,name)!=0) P=P->next;	//look for procedure "name"
+	if (P==NULL)	//procedure not found
+	{
+		error(33);
+		return NULL;
+	}
+	return P->paralist;
+}
+
+//return amount of parameters of a procedure //zjr 11.19 //#Z16
+int nodeparam(char *name)
+{
+	stnode *P;
+	P=&stlist;
+	while (P!= NULL&&strcmp(P->funcname,name)!=0) P=P->next;
+	if (P==&stlist || P==NULL) return 0; 	//no function error
+	//P->funcparam=funcparam;
+	return P->funcparam;
 }
 //end of operation to chain list
 	
@@ -1322,7 +1682,7 @@ void block(symset fsys)
 			//added by zjr  17.10.26 parameters passing
 			if (sym == SYM_LPAREN) 			//that means   procedure xx(
 			{
-				memset(tmpparam,0,50*50*sizeof(char));
+				memset(tmpparam,0,50*sizeof(comtab));
 				funcparam=0;
 				getsym();
 				if (sym != SYM_RPAREN)
@@ -1331,10 +1691,62 @@ void block(symset fsys)
 					{
 						if (sym == SYM_IDENTIFIER)
 						{
-							strcpy(tmpparam[funcparam],id);
-							++funcparam;
-							getsym();	//next sym
-						}
+							getsym();
+							if (sym==SYM_LSBRAC)		//is an array parameter //zjr 11.17 #Z1
+							{
+								array* arr;
+								dimensionHead* dhead;
+								dimension* pdim;
+								int arraySize = 1;
+							
+								arr = (array *) &tmpparam[funcparam];
+								strcpy(tmpparam[funcparam].name, id);
+								arr->kind=ID_ARRAY;	//head
+								arr->level = level;
+								//arress need to be backpatch
+								funcparam++;
+								strcpy(tmpparam[funcparam].name, id);	//dim head
+								tmpparam[funcparam].kind = ID_ARRAY;
+								dhead = (dimensionHead*) &tmpparam[funcparam];
+								dhead->depth = 0;
+								do	//width of every dimension
+								{
+									dhead->depth ++;
+									getsym();
+									if (sym == SYM_NUMBER)
+									{
+										funcparam ++;
+										strcpy(tmpparam[funcparam].name, id);
+										tmpparam[funcparam].kind = ID_ARRAY;
+										pdim = (dimension*) &tmpparam[funcparam];
+										pdim->width = num;
+										arraySize = arraySize * num;
+										getsym();
+									}
+									else
+									{
+										error(28);
+									}
+									if (sym == SYM_RSBRAC)
+									{
+										getsym();
+									}
+									else
+									{
+										error(29);
+									}
+								}
+								while(sym == SYM_LSBRAC);
+								++funcparam;
+							}//if lsbrac
+							else
+							{
+								strcpy(tmpparam[funcparam].name,id);
+								tmpparam[funcparam].kind=ID_VARIABLE;
+								++funcparam;
+								//getsym();	//next sym
+							}
+						}//if identifier
 						else if (sym == SYM_COMMA)
 						{
 							getsym();	//next sym
@@ -1344,7 +1756,7 @@ void block(symset fsys)
 						{
 							error(5); 	//missing ","    //need to be changed to be better
 						}
-					}
+					}//while not rparen
 					getsym();
 				}
 				else 					//procedure xx()	
@@ -1352,7 +1764,7 @@ void block(symset fsys)
 					funcparam=0;
 					getsym();	//next sym
 				}
-			}
+			}//if lparen
 			if (sym == SYM_SEMICOLON)
 			{
 				getsym();
@@ -1699,8 +2111,7 @@ int main ()
 	// create begin symbol sets
 	declbegsys = createset(SYM_CONST, SYM_VAR, SYM_PROCEDURE, SYM_NULL, SYM_LSBRAC, SYM_RSBRAC);	//声明符
 	//Dong Shi, 10.29, remove SYM_CALL, add SYM_RETURN 
-	//Dong Shi, 11.18, 添加 SYM_EXIT 
-	statbegsys = createset(SYM_BEGIN, SYM_RETURN, SYM_IF, SYM_WHILE, SYM_EXIT, SYM_NULL);	//状态符
+	statbegsys = createset(SYM_BEGIN, SYM_RETURN, SYM_IF, SYM_WHILE, SYM_NULL);	//状态符
 	//Dong Shi, 10.29, Add SYM_PROCEDURE to factor set
 	facbegsys = createset(SYM_IDENTIFIER, SYM_PROCEDURE, SYM_NUMBER, SYM_LPAREN, SYM_MINUS, SYM_ANTI, SYM_NULL);   //因子(factor)符
 

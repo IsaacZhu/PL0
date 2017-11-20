@@ -68,9 +68,10 @@ enum symtype
 
 //Add ID_POINTER //zjr 17.11.2 
 //Add array //ljq
+//Add ID_PARRAY for array arguments passing //zjr //11.7 //#Z4
 enum idtype
 {
-	ID_CONSTANT, ID_VARIABLE, ID_PROCEDURE, ID_POINTER, ID_ARRAY
+	ID_CONSTANT, ID_VARIABLE, ID_PROCEDURE, ID_POINTER, ID_ARRAY,ID_PARRAY
 };
 
 //add PAS: for parameter pass //modified by zjr 17.10.27
@@ -138,8 +139,9 @@ char* err_msg[] =
 /* 28 */    "Missing the dimension width of the array",
 /* 29 */    "Missing ']'",
 /* 30 */    "Missing '[' or dimension",
-/* 31 */    "",
-/* 32 */    "There are too many levels."
+/* 31 */    "incompatible type!",	//added by zjr //11.7 //#Z9
+/* 32 */    "There are too many levels.",
+/* 33 */    "Procedure not found!"	//added by zjr //11.7 //#Z9
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -154,6 +156,7 @@ int  err;
 int  cx;         // index of current instruction to be generated.
 int  level = 0;
 int  tx = 0;
+int dx;		//modified by zjr //11.7
 
 char line[80];
 
@@ -219,6 +222,7 @@ typedef struct
 FILE* infile;
 
 //to store symbol table list  //added by zjr 17.10.27
+//add paralist 	//zjr 11.7 //#Z9
 typedef struct stnode
 {
 	comtab *stable;
@@ -227,14 +231,16 @@ typedef struct stnode
 	int funcparam;
 	int localtx;
 	char funcname[100];
+	int paralist[50];
 }stnode;
 
 stnode stlist;
-stnode *Func;
+stnode *Func=&stlist;
 int position(char *id);	//declare position //added by zjr 17.10.27
 int tmpaddress=0;	//record address   //added by zjr 17.10.27
 char funcname[200];	//record funcname  //added by zjr 17.10.27
-char tmpparam[50][50];  //record name of parameters temporarily //added by zjr 17.10.27
+//char tmpparam[50][50];  //record name of parameters temporarily //added by zjr 17.10.27
+comtab tmpparam[50];	//record name of parameters temporarily //modified by zjr 11.17
 int tmptx=0;		//added by zjr 17.10.28
 
 int cx6[10],cx7[10];
@@ -262,4 +268,11 @@ typedef struct
 	int kind;
 	int width;
 } dimension;
+
+//zjr 11.7 
+//#define MAX_INT ((unsigned)(-1)>>1)
+
+int isarrayparam=0;//zjr 11.7 //#Z5
+int* nodeplist(char *name);
+int nodeparam(char *name);
 // EOF PL0.h
