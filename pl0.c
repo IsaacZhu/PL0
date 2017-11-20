@@ -620,7 +620,6 @@ void factor(symset fsys)
 						}// if sym not rparen
 					}// if sym lparen
 					*/
-				
 					if (sym == SYM_LPAREN)
 					{
 						int *paralist=nodeplist(id);	//get paralist	//zjr 11.17	//#Z14
@@ -704,13 +703,13 @@ void factor(symset fsys)
 										error(31);
 										break;
 									}
+									
 								}//else not comma #1
 							}//while
 							//the while end means that sym==')'
 							destroyset(s1);
 						}// if sym not rparen						
 					}// if sym lparen
-					
 
 					mk = (mask*) &table[i];
 					gen(CAL, level - mk->level, mk->address);
@@ -1262,7 +1261,7 @@ void statement(symset fsys)
 	{
 		getsym();
 		expression(fsys);
-		gen(RET, 0, 0);
+		gen(RET, 0, Func->funcparam);//zjr 11.20
 	}
 	//Dong Shi, 10.29, remove call
 	else if (sym == SYM_CALL)
@@ -1395,6 +1394,7 @@ void initchainlist()
 	stlist.funcparam=0;
 	stlist.stable=(comtab *)calloc(TXMAX,sizeof(comtab));
 	stlist.localtx=0;
+	strcpy(stlist.funcname,"\0");	//zjr 11.20
 } 
 
 //enter parameters to symbol table
@@ -1509,8 +1509,8 @@ void nodeinsert()
 		Q=Q->next;
 	}*/
 	Q=Func;
-	Q->next=(stnode *)malloc(sizeof(stnode));
-	P=Q->next;
+	P=(stnode *)malloc(sizeof(stnode));//zjr 11.20
+	//P=Q->next;						//zjr 11.20
 	P->stable=(comtab *)calloc(TXMAX,sizeof(comtab));	
 	
 	memcpy(P->stable,Q->stable,TXMAX*sizeof(comtab));
@@ -1518,6 +1518,7 @@ void nodeinsert()
 	param_enter();		//copy parameters
 	P->level=level; 
 	P->next=Q->next;	//#Z11
+	Q->next=P;			//zjr 11.20
 	P->funcparam=funcparam;
 	P->localtx=tx;		//need more consideration
 	strcpy(P->funcname,funcname);
@@ -2019,6 +2020,7 @@ void interpret()
 			b = stack[top + 2];
 			//++ top;
 			++ top;
+			top-=i.a;//zjr 11.20
 			stack[top] = tmp;
 			break;
 		case CAL:
