@@ -141,7 +141,8 @@ char* err_msg[] =
 /* 30 */    "Missing '[' or dimension",
 /* 31 */    "incompatible type!",	//added by zjr //11.7 //#Z9
 /* 32 */    "There are too many levels.",
-/* 33 */    "Procedure not found!"	//added by zjr //11.7 //#Z9
+/* 33 */    "Procedure not found!",	//added by zjr //11.7 //#Z9
+/* 34 */    "Has been declared!"	//zjr //11.21
 };
 
 //////////////////////////////////////////////////////////////////////

@@ -370,6 +370,41 @@ void enter(int kind)
 	dimension* dim;
 	int arraySize = 1;
 
+	//check if there's parameters who has same name	//zjr 11.21
+	int pos=0;
+	int i;
+	if (pos=position(id)!=0)
+	{
+		mk=(mask *)&table[pos];
+		if (mk->level==level)		//same level, error
+		{
+			error(34);
+			return;
+		}
+		else				//different level,cover it
+		{
+			if (mk->kind==ID_VARIABLE||mk->kind==ID_PROCEDURE)
+			{
+				strcpy(mk->name,"/cover");//delete this variable
+			}
+			else	//array or parray
+			{
+				arr=(array *)&table[pos];
+				strcpy(arr->name,"/cover");
+				pos++;
+				dhead=(dimensionHead *)&table[pos];
+				strcpy(dhead->name,"/cover");
+				for (i=0;i<dhead->depth;++i)
+				{
+					pos++;
+					dim=(dimension *)&table[pos];
+					strcpy(dim->name,"/cover");
+				}
+			}
+		}
+	}
+	
+
 	tx++;
 	strcpy(table[tx].name, id);
 	table[tx].kind = kind;
@@ -1383,6 +1418,46 @@ void statement(symset fsys)
 		gen(JMP, 0, cx1);
 		code[cx2].a = cx;
 	}
+	else if (sym == SYM_FOR)
+	{ // IF statement
+		getsym();
+		if (sym == SYM_LPAREN)
+		{
+			getsym();
+		}
+		else
+		{
+			error(18); // '(' expected.
+		}
+		statement(fsys);
+		getsym();
+		cx1 = cx;
+		set1 = createset(SYM_NULL);
+		set = uniteset(set1, fsys);
+		condition(set);
+		destroyset(set1);
+		destroyset(set);
+		getsym();
+		cx2 = cx;
+		gen(JPC, 0, 0);
+		set1 = createset(SYM_RPAREN, SYM_NULL);
+		set = uniteset(set1, fsys);
+		statement(set);
+		if (sym == SYM_RPAREN)
+		{
+			getsym();
+		}
+		else
+		{
+			error(18); // '(' expected.
+		}
+		destroyset(set1);
+		destroyset(set);
+		statement(fsys);
+		gen(JMP, 0, cx1);
+		code[cx2].a = cx;
+		Endcondition(code[cx2].a);
+	}
 	test(fsys, phi, 19);
 } // statement
 
@@ -1856,7 +1931,11 @@ void block(symset fsys)
 	statement(set);
 	destroyset(set1);
 	destroyset(set);
-	gen(OPR, 0, OPR_RET); // return
+
+	//gen(OPR, 0, OPR_RET); // return
+	//multipop arguments	//modified by zjr //11.21
+	gen(OPR,Func->funcparam,OPR_RET);
+
 	test(fsys, phi, 8); // test for error: Follow the statement is an incorrect symbol.
 	listcode(cx0, cx);
 	
@@ -1915,6 +1994,7 @@ void interpret()
 				top = b - 1;
 				pc = stack[top + 3];
 				b = stack[top + 2];
+				top-=i.l;//add by zjr 11.21
 				break;
 			case OPR_NEG:
 				stack[top] = -stack[top];
