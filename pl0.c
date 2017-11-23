@@ -1156,7 +1156,7 @@ void Endcondition(int JPcx)//add by ywt 2017.10.25,用于回填JMP_and跳转地�
 //////////////////////////////////////////////////////////////////////
 void statement(symset fsys)
 {
-	int i, cx1, cx2,cx3,cx4,cx5,depth;
+	int i, cx1, cx2,cx3,cx4,cx5,depth,cx6,cx7;
 	symset set1, set;
 
 	if (sym == SYM_IDENTIFIER)
@@ -1518,7 +1518,10 @@ void statement(symset fsys)
 		gen(JPC, 0, 0);
 		set1 = createset(SYM_RPAREN, SYM_NULL);
 		set = uniteset(set1, fsys);
+		cx6=cx;
+		gen(JMP,0,0);
 		statement(set);
+		gen(JMP,0,cx1);
 		if (sym == SYM_RPAREN)
 		{
 			getsym();
@@ -1529,8 +1532,9 @@ void statement(symset fsys)
 		}
 		destroyset(set1);
 		destroyset(set);
+		code[cx6].a=cx;
 		statement(fsys);
-		gen(JMP, 0, cx1);
+		gen(JMP, 0, cx6+1);
 		code[cx2].a = cx;
 		Endcondition(code[cx2].a);
 	}

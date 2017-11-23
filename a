@@ -1,0 +1,7 @@
+var i,j,k;
+begin 
+     for(i:=0;i<3;i:=i+1)
+     {
+        j:=i;
+     };
+end.
