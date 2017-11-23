@@ -1039,7 +1039,7 @@ void logi_and_expression(symset fsys)//----change by ywt 2017.10.25
 		    }
 		    sign_and++;              //用于记录and逻辑符的计算次数，并作为跳转指针
 		    cx6[sign_and]=cx;        //记录执行到and逻辑符时的cx值
-		    gen(JPC_and,0,0);
+		    gen(JLE,0,0);
 		}
 		getsym();
 		//addictive_expression(set);
@@ -1065,7 +1065,7 @@ void logi_or_expression(symset fsys)//----change by ywt,2017.10.25
 		    }
 		    sign_or++;                     //用于记录or逻辑符的计算次数，并作为跳转指针
 		    cx7[sign_or]=cx;               // //记录执行到or逻辑符时的cx值
-		    gen(JPC_or,0,0);
+		    gen(JG,0,0);
 		}
 		getsym();
 		logi_and_expression(set);
@@ -1595,6 +1595,35 @@ void statement(symset fsys)
 		}
 	}
 	//Dong Shi, 11.23, disable error 19 check(for supporting ++ and --)
+	else if(sym==SYM_LBRACE)
+	{
+		getsym();
+		set1 = createset(SYM_SEMICOLON, SYM_RBRACE, SYM_NULL);
+		set = uniteset(set1, fsys);
+		statement(set);
+		while (sym == SYM_SEMICOLON || inset(sym, statbegsys))
+		{
+			if (sym == SYM_SEMICOLON)
+			{
+				getsym();
+			}
+			else
+			{
+				error(10);
+			}
+			if(sym!=SYM_RBRACE)
+			statement(set);
+			else break;
+		} // while
+		destroyset(set1);
+		destroyset(set);
+		if (sym == SYM_RBRACE)
+		     getsym();
+		else
+		{
+			error(17); // ';' or 'end' expected.
+		}		
+	}
 	//test(fsys, phi, 19);
 } // statement
 
@@ -2266,13 +2295,13 @@ void interpret()
 				pc = i.a;
 			top--;
 			break;
-		case JPC_and: 			//added by ywt
+		case JLE: 			//added by ywt
 			if (stack[top] == 0)
 			{
 				pc = i.a;
 			}
 			break;
-		case JPC_or:
+		case JG:
 			if (stack[top] != 0)
 			{
 				pc = i.a;

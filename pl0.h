@@ -3,7 +3,7 @@
 #define NRW        16     // number of reserved words
 #define TXMAX      500    // length of identifier table
 #define MAXNUMLEN  14     // maximum number of digits in numbers
-#define NSYM       17     // maximum number of symbols in array ssym and csym
+#define NSYM       19     // maximum number of symbols in array ssym and csym
 #define MAXIDLEN   10     // length of identifiers
 
 #define MAXADDRESS 32767  // maximum address
@@ -57,6 +57,8 @@ enum symtype
 	SYM_ANTI,
 	SYM_LSBRAC,
 	SYM_RSBRAC,
+	SYM_LBRACE,
+	SYM_RBRACE,
 	//=================added by lijiquan
 	SYM_AND,
 	SYM_OR,
@@ -86,7 +88,7 @@ enum idtype
 //delete PAS	//zjr 11.2
 enum opcode
 {
-	LIT, OPR, LOD, STO, CAL, INT, JMP, JPC,JPC_and,JPC_or,RET,APOP,ASTO,LODA,LEA, LODAR, STOAR
+	LIT, OPR, LOD, STO, CAL, INT, JMP, JPC,JLE,JG,RET,APOP,ASTO,LODA,LEA, LODAR, STOAR
 };
 
 //Dong Shi, 11.22, Add op OPR_INC and OPR_DEC
@@ -191,13 +193,13 @@ int wsym[NRW + 1] =
 int ssym[NSYM + 1] =
 {
 	SYM_NULL, SYM_PLUS, SYM_MINUS, SYM_TIMES, SYM_SLASH,
-	SYM_LPAREN, SYM_RPAREN, SYM_EQU, SYM_COMMA, SYM_PERIOD, SYM_SEMICOLON,SYM_BITAND,SYM_BITOR,SYM_ANTI,SYM_LSBRAC,SYM_RSBRAC,SYM_BITXOR,SYM_MOD
+	SYM_LPAREN, SYM_RPAREN, SYM_EQU, SYM_COMMA, SYM_PERIOD, SYM_SEMICOLON,SYM_BITAND,SYM_BITOR,SYM_ANTI,SYM_LSBRAC,SYM_RSBRAC,SYM_BITXOR,SYM_MOD,SYM_LBRACE,SYM_RBRACE
 };
 
 //符号集
 char csym[NSYM + 1] =
 {
-	' ', '+', '-', '*', '/', '(', ')', '=', ',', '.', ';','&','|','!','[',']','^','%'
+	' ', '+', '-', '*', '/', '(', ')', '=', ',', '.', ';','&','|','!','[',']','^','%','{','}'
 };
 
 //汇编指令集
@@ -206,7 +208,7 @@ char csym[NSYM + 1] =
 #define MAXINS   17
 char* mnemonic[MAXINS] =
 {
-	"LIT", "OPR", "LOD", "STO", "CAL", "INT", "JMP", "JPC","JPC_and","JPC_or", "RET","APOP","ASTO","LODA", "LEA", "LODAR", "STOAR"
+	"LIT", "OPR", "LOD", "STO", "CAL", "INT", "JMP", "JPC","JLE","JG", "RET","APOP","ASTO","LODA", "LEA", "LODAR", "STOAR"
 };
 
 typedef struct
