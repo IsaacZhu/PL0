@@ -192,6 +192,11 @@ void getsym(void)
 			getch();
 			return;
 		}
+		else
+		{
+			sym = SYM_PLUS;
+			return;
+		}
 	}
 	else if (ch == '-')
 	{
@@ -200,6 +205,11 @@ void getsym(void)
 		{
 			sym = SYM_DEC;
 			getch();
+			return;
+		}
+		else
+		{
+			sym = SYM_MINUS;
 			return;
 		}
 	}
