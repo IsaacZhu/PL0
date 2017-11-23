@@ -63,7 +63,11 @@ enum symtype
 	SYM_LOGIEQU,
 
 	SYM_BITXOR, 	// ^
-	SYM_MOD			// %
+	SYM_MOD,			// %
+
+	//Dong Shi, 11.23, add SYM_INC, SYM_DEC
+	SYM_INC,
+	SYM_DEC
 };
 
 //Add ID_POINTER //zjr 17.11.2 
@@ -85,6 +89,7 @@ enum opcode
 	LIT, OPR, LOD, STO, CAL, INT, JMP, JPC,JPC_and,JPC_or,RET,APOP,ASTO,LODA,LEA, LODAR, STOAR
 };
 
+//Dong Shi, 11.22, Add op OPR_INC and OPR_DEC
 enum oprcode
 {
 	OPR_RET, OPR_NEG, OPR_ADD, OPR_MIN,
@@ -94,7 +99,9 @@ enum oprcode
 	//================added by lijiquan
 	OPR_AND, OPR_OR, OPR_ANTI,
 	
-	OPR_BITAND,OPR_BITOR,OPR_BITXOR,OPR_MOD
+	OPR_BITAND,OPR_BITOR,OPR_BITXOR,OPR_MOD,
+
+	OPR_INC, OPR_DEC
 };
 
 
@@ -134,7 +141,7 @@ char* err_msg[] =
 /* 23 */    "The symbol can not be followed by a factor.",
 /* 24 */    "The symbol can not be as the beginning of an expression.",
 /* 25 */    "The number is too great.",
-/* 26 */    "",
+/* 26 */    "Right ++ or -- must followed by a variable.", //Dong Shi, 11.22, Add Error "++"/"--" + VAR 
 /* 27 */    "Reserved word call is not supported anymore. ",
 /* 28 */    "Missing the dimension width of the array",
 /* 29 */    "Missing ']'",

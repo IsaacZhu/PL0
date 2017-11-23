@@ -176,9 +176,34 @@ void getsym(void)
 {
 	int i, k;
 	char a[MAXIDLEN + 1];
+	char lastChar;
 
 	while (ch == ' '||ch == '\t')
 		getch();
+
+	//Dong Shi, 11.23, Add ++ and --
+	lastChar = ch;
+	if (ch == '+')
+	{
+		getch();
+		if(ch == '+')
+		{
+			sym = SYM_INC;
+			getch();
+			return;
+		}
+	}
+	else if (ch == '-')
+	{
+		getch();
+		if(ch == '-')
+		{
+			sym = SYM_DEC;
+			getch();
+			return;
+		}
+	}
+	ch = lastChar;
 
 	if (isalpha(ch))
 	{ // symbol is a reserved word or an identifier.
@@ -1181,8 +1206,10 @@ void statement(symset fsys)
 		{
 			error(12); // Illegal assignment.
 			i = 0;
-		}
+		}		
+		
 		getsym();
+
 		if(table[i].kind == ID_ARRAY)	//处理数组取值
 		{
 			arr = (array*) &table[i];
@@ -1270,6 +1297,45 @@ void statement(symset fsys)
 		if (sym == SYM_BECOMES)
 		{
 			getsym();
+		}
+		//Dong Shi, 11.23, Add var ++ and var --
+		else if (sym == SYM_INC)
+		{
+			if(table[i].kind == ID_VARIABLE)
+			{
+				if (i)
+				{
+					gen(LOD, level - mk->level, mk->address);
+					gen(OPR, 0, OPR_INC);
+					gen(STO, level - mk->level, mk->address);
+					getsym();
+					return;
+				}
+				else
+				{
+					error(11);
+					testtable();
+				}
+			}
+		}
+		else if (sym == SYM_DEC)
+		{
+			if(table[i].kind == ID_VARIABLE)
+			{
+				if (i)
+				{
+					gen(LOD, level - mk->level, mk->address);
+					gen(OPR, 0, OPR_DEC);
+					gen(STO, level - mk->level, mk->address);
+					getsym();
+					return;
+				}
+				else
+				{
+					error(11);
+					testtable();
+				}
+			}
 		}
 		else
 		{
@@ -1458,7 +1524,68 @@ void statement(symset fsys)
 		code[cx2].a = cx;
 		Endcondition(code[cx2].a);
 	}
-	test(fsys, phi, 19);
+	else if (sym == SYM_INC)
+	{
+		//printf("########## ++ var\n");
+		getsym();
+		if (sym == SYM_IDENTIFIER)
+		{
+			if ((i = position(id)) == 0)
+			{
+				error(11); // Undeclared identifier.
+				testtable();
+			}
+			else
+			{
+				switch (table[i].kind)
+				{
+					mask* mk;
+					case ID_VARIABLE:
+						mk = (mask*) &table[i];
+						gen(LOD, level - mk->level, mk->address);
+						gen(OPR, 0, OPR_INC);
+						gen(STO, level - mk->level, mk->address);
+						getsym();
+						break;
+					default: 
+						error(26); 
+						break;
+				}
+			}
+		}
+	}
+	else if (sym == SYM_DEC)
+	{
+		getsym();
+		if (sym == SYM_IDENTIFIER)
+		{
+			if ((i = position(id)) == 0)
+			{
+				error(11); // Undeclared identifier.
+				printf("%s\n",id);
+				testtable();
+			}
+			else
+			{
+				switch (table[i].kind)
+				{
+					mask* mk;
+					case ID_VARIABLE:
+						mk = (mask*) &table[i];
+						gen(LOD, level - mk->level, mk->address);
+						gen(OPR, 0, OPR_DEC);
+						gen(STO, level - mk->level, mk->address);
+						getsym();
+						break;
+					default: 
+						error(26); 
+						break;
+				}	
+			}
+		}
+	}
+	//Dong Shi, 11.23, disable error 19 check(for supporting ++ and --)
+	//test(fsys, phi, 19);
 } // statement
 
 //operation to chain list //added by zjr 17.10.27
@@ -2081,6 +2208,13 @@ void interpret()
 			case OPR_BITXOR:
 				top --;
 				stack[top] = stack[top] ^ stack[top + 1];
+				break;
+			//Dong Shi, 11.23, Add op OPR_INC and OPR_DEC
+			case OPR_INC:
+				++ stack[top];
+				break;
+			case OPR_DEC:
+				-- stack[top];
 				break;
 			} // switch
 			break;
