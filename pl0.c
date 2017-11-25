@@ -1,5 +1,4 @@
 // pl0 compiler source code
-//主函数在这个程序
 #pragma warning(disable:4996)
 
 
@@ -10,96 +9,8 @@
 
 #include "pl0.h"
 #include "set.c"
+//#include "zjrtest.c"
 
-void testtable()	//print table //zjr 11.17 //test code
-{
-	mask *mk;
-	array *arr;
-	dimensionHead *dhead;
-	dimension *dim;
-	int flag=0;
-	int i;
-	//tmppram mode
-	/*for (i=0;i<funcparam;++i)	//tx for symbol table   funcparam for tmpparam
-	{
-		if (tmpparam[i].kind==ID_VARIABLE)
-		{
-			flag=0;
-			mk=(mask *)&tmpparam[i];
-			printf("%d :variable %s\n",i,mk->name);
-		}
-		else if (tmpparam[i].kind==ID_ARRAY)
-		{
-			if (flag==0)	//head
-			{
-				arr=(array *)&tmpparam[i];
-				printf("%d :array %s level:%d\n",i,arr->name,arr->level);
-				flag=1;
-			}
-			else if (flag==1)	//dim head
-			{
-				dhead=(dimensionHead *)&tmpparam[i];
-				printf("%d :array %s depth:%d\n",i,dhead->name,dhead->depth);
-				flag=2;
-			}
-			else
-			{
-				dim=(dimension *)&tmpparam[i];
-				printf("%d :array %s width:%d\n",i,dim->name,dim->width);
-			}
-		}
-	}
-*/
-	//symbol table mode
-	for (i=0;i<=tx;++i)	//tx for symbol table   funcparam for tmpparam
-	{
-		if (table[i].kind==ID_VARIABLE)
-		{
-			flag=0;
-			mk=(mask *)&table[i];
-			printf("%d :variable %s\n",i,mk->name);
-		}
-		else if (table[i].kind==ID_ARRAY)
-		{
-			if (flag==0)	//head
-			{
-				arr=(array *)&table[i];
-				printf("%d :array %s level:%d\n",i,arr->name,arr->level);
-				flag=1;
-			}
-			else if (flag==1)	//dim head
-			{
-				dhead=(dimensionHead *)&table[i];
-				printf("%d :array %s depth:%d\n",i,dhead->name,dhead->depth);
-				flag=2;
-			}
-			else
-			{
-				dim=(dimension *)&table[i];
-				printf("%d :array %s width:%d\n",i,dim->name,dim->width);
-			}
-		}
-		else if (table[i].kind==ID_PARRAY)
-		{
-			printf("%d :parray %s \n",i,table[i].name);
-			flag=0;
-		}
-		else
-		{
-			mk=(mask *)&table[i];
-			printf("%d :%d %s level:%d addr:%d\n",i,mk->kind,mk->name,mk->level,mk->address);
-			flag=0;
-		}
-	}//table mode
-	
-	printf("dx is %d ;tx is %d\n",dx,tx);
-	//exit(2);
-}
-
-void mytest()	//for test //zjr 11.19
-{
-	printf("here\n");//tc
-}
 //////////////////////////////////////////////////////////////////////
 // print error message.
 void error(int n)
@@ -160,6 +71,14 @@ void getch(void)
 					}
 					break;
 				}//else if
+				else // is a '/'	//zjr 11.25
+				{
+					printf("%c", '/'); 
+					line[++ll] = '/';
+					printf("%c",ch);
+					line[++ll]=ch;
+					continue;
+				}
 			}// if ch == '/'
 			printf("%c", ch);
 			line[++ll] = ch;
@@ -630,8 +549,6 @@ void factor(symset fsys)
 			if ((i = position(id)) == 0)
 			{
 				error(11); // Undeclared identifier.
-				printf("%s\n",id);
-				testtable();
 			}
 			else
 			{
@@ -654,42 +571,6 @@ void factor(symset fsys)
 					//Dong Shi, 10.29, copy (zjr 10.27) "call" work to here
 					//support parameters now //modified by zjr 17.10.27
 					getsym();
-					/*if (sym == SYM_LPAREN)
-					{
-						getsym();
-						if (sym != SYM_RPAREN)			//call pro()
-						{ 
-							int paramnumber=0;
-							while (sym != SYM_RPAREN)	//not ")"
-							{
-								if (sym == SYM_IDENTIFIER)
-								{ 
-									int pos;
-									pos=position(id);	//get pos'
-									mk = (mask*) &table[pos];
-									if (pos!=0)
-									{
-										gen(PAS,paramnumber++,mk->address); 	//PAS(param_number,var_addr)
-									}
-									else error(11); //use this temporarily.. if I'm happy I'll change it
-									getsym();	//next sym
-									continue;
-								}
-								else if (sym == SYM_COMMA)
-								{
-									getsym();	//next sym
-									continue;
-								}
-								else 			//not "," ! an error occured
-								{
-									error(5); 	//missing ","    //need to be changed to be better
-									break;//Dong Shi, 10.29, fix dead loop
-								}
-							}//while
-							//the while end means that sym==')'
-						}// if sym not rparen
-					}// if sym lparen
-					*/
 					if (sym == SYM_LPAREN)
 					{
 						int *paralist=nodeplist(id);	//get paralist	//zjr 11.17	//#Z14
@@ -1156,7 +1037,7 @@ void Endcondition(int JPcx)//add by ywt 2017.10.25,用于回填JMP_and跳转地�
 //////////////////////////////////////////////////////////////////////
 void statement(symset fsys)
 {
-	int i, cx1, cx2,cx3,cx4,cx5,depth,cx6,cx7;
+	int i, cx1, cx2,cx3,cx4,cx5,depth,cx6;
 	symset set1, set;
 
 	if (sym == SYM_IDENTIFIER)
@@ -1198,8 +1079,6 @@ void statement(symset fsys)
 						{
 							s1=createset(SYM_RPAREN,SYM_COMMA,SYM_NULL); //end when meet ")",","
 							expression(s1);		//analyse the expression in argument
-							//gen(APOP,0,basemask->address);	//clear stack
-							//getsym();
 						}
 					}//while
 					//the while end means that sym==')'
@@ -1324,7 +1203,6 @@ void statement(symset fsys)
 				else
 				{
 					error(11);
-					testtable();
 				}
 			}
 		}
@@ -1343,7 +1221,6 @@ void statement(symset fsys)
 				else
 				{
 					error(11);
-					testtable();
 				}
 			}
 		}
@@ -1546,8 +1423,7 @@ void statement(symset fsys)
 		{
 			if ((i = position(id)) == 0)
 			{
-				error(11); // Undeclared identifier.
-				testtable();
+				error(11); // Undeclared identifier.f
 			}
 			else
 			{
@@ -1576,8 +1452,6 @@ void statement(symset fsys)
 			if ((i = position(id)) == 0)
 			{
 				error(11); // Undeclared identifier.
-				printf("%s\n",id);
-				testtable();
 			}
 			else
 			{
@@ -1645,7 +1519,7 @@ void initchainlist()
 //enter parameters to symbol table
 void param_enter()
 {
-	int i,pos,dim,j,apos;
+	int i,pos,j,apos;
 	mask *mk;
 	dimensionHead *dhead;
 	array *arr;
@@ -1700,21 +1574,14 @@ void param_enter()
 			{
 				//read array head
 				//cover the former array //#Z17
-				//tmpparam[i].kind=ID_PARRAY;
 				arr=(array *)&table[pos];				
 				arr->level=level;
 				arr->address=dx;	
 				arr->kind=ID_PARRAY;
-				//memcpy(&table[++tx],&tmpparam[i],1*sizeof(comtab));
-				//table[tx].kind=ID_PARRAY;	//a new term
-				//mk=(mask *)&table[tx];
-				//mk->level=level;
-				//mk->address=dx;
 				apos=pos;
 				apos++;
 				dx++;
 				//read dim head
-				//dhead=(dimensionHead *)&tmpparam[i];
 				dhead=(dimensionHead *)&table[apos];
 				//#Z17
 				dhead->kind=ID_PARRAY;
@@ -1727,7 +1594,6 @@ void param_enter()
 				}
 
 				i+=(dhead->depth+1);
-				//dx+=(dhead->depth+1);
 			}
 			else	//It's variable.Cover it!
 			{
@@ -1748,14 +1614,8 @@ void nodeinsert()
 
 	int i;
 	int *paralist;
-	/*Q=&stlist;	//#Z11
-	while (Q->next!=NULL)//TO TAIL
-	{
-		Q=Q->next;
-	}*/
 	Q=Func;
 	P=(stnode *)malloc(sizeof(stnode));//zjr 11.20
-	//P=Q->next;						//zjr 11.20
 	P->stable=(comtab *)calloc(TXMAX,sizeof(comtab));	
 	
 	memcpy(P->stable,Q->stable,TXMAX*sizeof(comtab));
@@ -2311,11 +2171,6 @@ void interpret()
 				pc = i.a;
 			}
 			break;
-		// move a parameter from a func's father //added by zjr 17.10.28
-		/*case PAS:
-			stack[top+4+i.l]=stack[base(stack,b,0)+i.a];			
-			break;*/
-		//put argument on stack top to stack[/pbase]	//zjr 11.2
 		case APOP:
 			stack[++stack[base(stack,b,0)+i.a]]=stack[top];
 			top=stack[base(stack,b,0)+i.a];
