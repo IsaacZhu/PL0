@@ -1256,6 +1256,12 @@ void statement(symset fsys)
 	{
 		error(27); //call not supported anymore
 	}
+	//Dong Shi, add exit
+	else if (sym == SYM_EXIT)
+	{
+		getsym();
+		gen(JMP, 0, 0);
+	}
 	else if (sym == SYM_IF)
 	{ // if statement
 		getsym();
@@ -2225,7 +2231,8 @@ int main ()
 	// create begin symbol sets
 	declbegsys = createset(SYM_CONST, SYM_VAR, SYM_PROCEDURE, SYM_NULL, SYM_LSBRAC, SYM_RSBRAC);	//声明符
 	//Dong Shi, 10.29, remove SYM_CALL, add SYM_RETURN 
-	statbegsys = createset(SYM_BEGIN, SYM_RETURN, SYM_IF, SYM_WHILE, SYM_NULL);	//状态符
+	//Dong Shi, 11.25, add exit
+	statbegsys = createset(SYM_BEGIN, SYM_RETURN, SYM_IF, SYM_EXIT, SYM_WHILE, SYM_NULL);	//状态符
 	//Dong Shi, 10.29, Add SYM_PROCEDURE to factor set
 	facbegsys = createset(SYM_IDENTIFIER, SYM_PROCEDURE, SYM_NUMBER, SYM_LPAREN, SYM_MINUS, SYM_ANTI, SYM_NULL);   //因子(factor)符
 
