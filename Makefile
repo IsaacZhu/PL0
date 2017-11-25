@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-g -Wall
+CFLAGS=-g #-Wall
 pl0.o:pl0.c
 	${CC} ${CFLAGS} -o $@ $^
 
