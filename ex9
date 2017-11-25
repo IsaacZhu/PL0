@@ -1,0 +1,5 @@
+var j,a;
+begin
+	a:=0;
+	j:=a+2;
+end.

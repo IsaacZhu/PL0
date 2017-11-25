@@ -1,12 +1,9 @@
-var result,i,tmp;
+var result;
 procedure fact(n);
-var nm1;
 begin
-	nm1:=n-1;
 	if n<2 then return 1;
-	else return fact(nm1)*n;
+	else return fact(-1+n)*n;
 end;
 begin
-	i:=5;
-	result:=fact(i);
-end. 
+	result:=fact(5);
+end.
