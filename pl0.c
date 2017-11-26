@@ -703,8 +703,6 @@ void factor(symset fsys)
 					gen(LODAR, 0, 0);
 					destroyset(set);
 					destroyset(set1);
-					//printf("array finished!\n");
-					/**************************a load instruction to be loaded*******************/
 					break;
 				//added by zjr //11.17 //#Z6
 				//if it's an array parameter instead of normal array
@@ -859,15 +857,73 @@ void addictive_expression(symset fsys)			//<===========================name chan
 	destroyset(set);
 } // addictive_expression
 
+//////////////////////////////////////////////////////////////////////
+void condition(symset fsys)//---change by ywt,2017.10.25
+{
+	int relop;
+	symset set;
+    sign_condition=1;
+	// if (sym == SYM_ODD)
+	// {
+	// 	getsym();
+	// 	expression(fsys);
+	// 	gen(OPR, 0, 6);
+	// }
+	// else
+	{
+		set = uniteset(relset, fsys);
+		addictive_expression(set);
+		//destroyset(set);
+		if (! inset(sym, relset))
+		{
+			//error(20);
+		}
+		else
+		{
+			relop = sym;
+			getsym();
+			addictive_expression(fsys);
+			switch (relop)
+			{
+			case SYM_LOGIEQU:			//modified by ljq
+				gen(OPR, 0, OPR_LOGIEQU);
+				break;
+			case SYM_NEQ:
+				gen(OPR, 0, OPR_NEQ);
+				break;
+			case SYM_LES:
+				gen(OPR, 0, OPR_LES);
+				break;
+			case SYM_GEQ:
+				gen(OPR, 0, OPR_GEQ);
+				break;
+			case SYM_GTR:
+				gen(OPR, 0, OPR_GTR);
+				break;
+			case SYM_LEQ:
+				gen(OPR, 0, OPR_LEQ);
+				break;
+			} // switch
+		} // else
+		destroyset(set);
+	} // else
+	for(;sign_or>0;)//用于回填JMP_or跳转地址
+	{
+		 code[cx7[sign_or]].a=cx+1;
+		 sign_or--;
+	}
+	sign_condition=0;    
+} // condition
+
 void bit_and_expr(symset fsys) // Bit operator and '&'
 {
 	symset set;
 	set = uniteset(fsys, createset(SYM_BITAND, SYM_NULL));
-	addictive_expression(set);
+	condition(set);
 	while(sym == SYM_BITAND)
 	{
 		getsym();
-		addictive_expression(set);
+		condition(set);
 		gen(OPR, 0, OPR_BITAND);
 	}
 	destroyset(set);
@@ -964,64 +1020,6 @@ void expression(symset fsys)
 	destroyset(set);
 } // expression
 //===================================================================================
-
-//////////////////////////////////////////////////////////////////////
-void condition(symset fsys)//---change by ywt,2017.10.25
-{
-	int relop;
-	symset set;
-    sign_condition=1;
-	// if (sym == SYM_ODD)
-	// {
-	// 	getsym();
-	// 	expression(fsys);
-	// 	gen(OPR, 0, 6);
-	// }
-	// else
-	{
-		set = uniteset(relset, fsys);
-		expression(set);
-		//destroyset(set);
-		if (! inset(sym, relset))
-		{
-			//error(20);
-		}
-		else
-		{
-			relop = sym;
-			getsym();
-			expression(fsys);
-			switch (relop)
-			{
-			case SYM_LOGIEQU:			//modified by ljq
-				gen(OPR, 0, OPR_LOGIEQU);
-				break;
-			case SYM_NEQ:
-				gen(OPR, 0, OPR_NEQ);
-				break;
-			case SYM_LES:
-				gen(OPR, 0, OPR_LES);
-				break;
-			case SYM_GEQ:
-				gen(OPR, 0, OPR_GEQ);
-				break;
-			case SYM_GTR:
-				gen(OPR, 0, OPR_GTR);
-				break;
-			case SYM_LEQ:
-				gen(OPR, 0, OPR_LEQ);
-				break;
-			} // switch
-		} // else
-		destroyset(set);
-	} // else
-	for(;sign_or>0;)//用于回填JMP_or跳转地址
-	{
-		 code[cx7[sign_or]].a=cx+1;
-		 sign_or--;
-	}
-	sign_condition=0;    
-} // condition
 
 /////////////////////////////////////
 void Endcondition(int JPcx)//add by ywt 2017.10.25,用于回填JMP_and跳转地址
