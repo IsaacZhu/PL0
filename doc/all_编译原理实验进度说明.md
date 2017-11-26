@@ -131,3 +131,7 @@ var ++ 还是 ++ var，都等同于 var := var + 1 的语法糖。还是由于�
 zjr 11.25
 * + fix a bug in annotation analysis, support div now (ex10)
 
+---
+zjr 11.27
+* + support relop in expression now(in function rel_expr)! example:ex14 
+
