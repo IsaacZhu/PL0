@@ -253,8 +253,11 @@ char funcname[200];	//record funcname  //added by zjr 17.10.27
 comtab tmpparam[50];	//record name of parameters temporarily //modified by zjr 11.17
 int tmptx=0;		//added by zjr 17.10.28
 
-int cx6[10],cx7[10];
-int sign_and=0;int sign_or=0;int sign_condition=0;//----add by ywt 2017.10.25
+int cx6[5][10],cx7[5][10];
+int sign_and[5]={0,0,0,0,0};
+int sign_or[5]={0,0,0,0,0};
+int lev=0;
+int sign_condition=0;//----add by ywt 2017.10.25
 
 //ljq
 typedef struct 
