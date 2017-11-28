@@ -10,8 +10,9 @@ symset uniteset(symset s1, symset s2)
 	symset s;
 	snode* p;
 	
-	s1 = s1->next;
-	s2 = s2->next;
+	
+	if (s1!=0x0) s1 = s1->next;
+	if (s2!=NULL) s2 = s2->next;
 	
 	s = p = (snode*) malloc(sizeof(snode));
 	while (s1 && s2)

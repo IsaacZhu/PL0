@@ -12,7 +12,7 @@
 
 #define MAXSYM     30     // maximum number of symbols  
 
-#define STACKSIZE  1000   // maximum storage
+#define STACKSIZE  4096   // maximum storage
 
 //关键字的枚举类型
 enum symtype
@@ -88,7 +88,7 @@ enum idtype
 //delete PAS	//zjr 11.2
 enum opcode
 {
-	LIT, OPR, LOD, STO, CAL, INT, JMP, JPC,JLE,JG,RET,APOP,ASTO,LODA,LEA, LODAR, STOAR
+	LIT, OPR, LOD, STO, CAL, INT, JMP, JPC,JLEZ,JGZ,RET,APOP,ASTO,LODA,LEA, LODAR, STOAR
 };
 
 //Dong Shi, 11.22, Add op OPR_INC and OPR_DEC
@@ -168,7 +168,7 @@ int  level = 0;
 int  tx = 0;
 int dx;		//modified by zjr //11.7
 
-char line[80];
+char line[512];	//zjr 11.27
 
 instruction code[CXMAX];
 int funcparam=0;
@@ -208,7 +208,7 @@ char csym[NSYM + 1] =
 #define MAXINS   17
 char* mnemonic[MAXINS] =
 {
-	"LIT", "OPR", "LOD", "STO", "CAL", "INT", "JMP", "JPC","JLE","JG", "RET","APOP","ASTO","LODA", "LEA", "LODAR", "STOAR"
+	"LIT", "OPR", "LOD", "STO", "CAL", "INT", "JMP", "JPC","JLEZ","JGZ", "RET","APOP","ASTO","LODA", "LEA", "LODAR", "STOAR"
 };
 
 typedef struct

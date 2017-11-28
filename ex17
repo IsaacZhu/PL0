@@ -1,0 +1,6 @@
+var i,j;
+begin
+	i:=1;
+	j:=2;
+	i:=i+j+(i*j);
+end.

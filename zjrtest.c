@@ -87,3 +87,63 @@ void mytest()	//for test //zjr 11.19
 {
 	printf("here\n");//tc
 }
+
+void printsym()
+{
+	char *symbset[]={
+	"SYM_NULL",
+	"SYM_IDENTIFIER",
+	"SYM_NUMBER",
+	"SYM_PLUS",
+	"SYM_MINUS",
+	"SYM_TIMES",
+	"SYM_SLASH",
+	"SYM_ODD",
+	"SYM_EQU",
+	"SYM_NEQ",
+	"SYM_LES",
+	"SYM_LEQ",
+	"SYM_GTR",
+	"SYM_GEQ",
+	"SYM_LPAREN",
+	"SYM_RPAREN",
+	"SYM_COMMA",
+	"SYM_SEMICOLON",
+	"SYM_PERIOD",
+	"SYM_BECOMES",
+    	"SYM_BEGIN",
+	"SYM_END",
+	"SYM_IF",
+	"SYM_THEN",
+	"SYM_WHILE",
+	"SYM_DO",
+	"SYM_CALL",
+	"SYM_CONST",
+	"SYM_VAR",
+	"SYM_PROCEDURE",
+	"SYM_ELSE",
+	"SYM_ELSE_IF",
+	"SYM_EXIT",
+	"SYM_RETURN",
+	"SYM_FOR",
+	"SYM_BITAND",		//the folowing two changed by lijiquan
+	"SYM_BITOR",
+	"SYM_ANTI",
+	"SYM_LSBRAC",
+	"SYM_RSBRAC",
+	"SYM_LBRACE",
+	"SYM_RBRACE",
+	//=================added by lijiquan
+	"SYM_AND",
+	"SYM_OR",
+	"SYM_LOGIEQU",
+
+	"SYM_BITXOR", 	// ^
+	"SYM_MOD",			// %
+
+	//Dong Shi, 11.23, add SYM_INC, SYM_DEC
+	"SYM_INC",
+	"SYM_DEC"
+};
+	printf("sym is %s\n",symbset[sym]);
+}

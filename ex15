@@ -1,0 +1,6 @@
+var i,j;
+begin
+  // you can use (j != 0) for "j"
+ if i>=j then//&& j!=0 && j > 10 && i!=0 && i>20 || i>100 || j >= 100 && i <= 40 && j <= 20 || i >= -10) then
+ 		i := 2;
+end.
