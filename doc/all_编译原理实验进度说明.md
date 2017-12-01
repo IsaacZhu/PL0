@@ -135,3 +135,12 @@ zjr 11.25
 zjr 11.27
 * + support relop in expression now(in function rel_expr)! example:ex14 
 
+---
+
+董仕 12.1
+
+* + 新增保留字 printf 与 random
+* + 解释器新增指令 OUTS，用来输出输出栈的字符与值
+* + 添加类似于 C 的 printf 内置函数，功能详见完整文档
+* + 添加 random() 内置函数，无参，依赖 linux 系统的 sys/time.h 函数
+* - 去掉 pl0 的存入则打印的规则
