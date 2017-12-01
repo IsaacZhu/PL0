@@ -7,6 +7,9 @@
 #include <string.h>
 #include <ctype.h>
 
+//Dong Shi, 12.1, Add time.h
+#include <sys/time.h>
+
 #include "pl0.h"
 #include "set.c"
 
@@ -832,6 +835,19 @@ void factor(symset fsys)
 			//expression(fsys);
 			factor(fsys);
 			gen(OPR, 0, 6);
+		}
+		//Dong Shi, 12.1, Add random
+		else if (sym == SYM_RANDOM)
+		{
+			getsym(); // '('
+			getsym(); // ')'
+			getsym();
+
+			struct timeval tpstart;
+			gettimeofday(&tpstart,NULL);
+    		srand(tpstart.tv_usec);
+
+			gen(LIT, 0, rand());
 		}
 		//test(fsys, createset(SYM_LPAREN, SYM_NULL), 23);
 	//} // while

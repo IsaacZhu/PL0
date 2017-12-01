@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#define NRW        17     // number of reserved words
+#define NRW        18     // number of reserved words
 #define TXMAX      500    // length of identifier table
 #define MAXNUMLEN  14     // maximum number of digits in numbers
 #define NSYM       19     // maximum number of symbols in array ssym and csym
@@ -72,8 +72,10 @@ enum symtype
 	SYM_DEC,
 
 	//Dong Shi, 12.1, add SYM_FORMAT and SYM_PRINTF
+	//Dong Shi, 12.1, add SYM_RANDOM
 	SYM_FORMAT,
-	SYM_PRINTF
+	SYM_PRINTF,
+	SYM_RANDOM
 };
 
 //Add ID_POINTER //zjr 17.11.2 
@@ -190,20 +192,22 @@ int funcparam=0;
 
 //关键字集
 //Dong Shi, 12.1, Add printf
+//Dong Shi, 12.1, Add random
 char* word[NRW + 1] =
 {
 	"", /* place holder */
 	"begin", "call", "const", "do", "end","if",
-	"odd", "procedure", "then", "var", "while","else","else if","exit","return","for", "printf"
+	"odd", "procedure", "then", "var", "while","else","else if","exit","return","for", "printf", "random"
 };
 
 //关键字代号集，与关键字一一对应
 //Dong Shi, 12.1, Add SYM_PRINTF
+//Dong Shi, 12.1, Add SYM_RANDOM
 int wsym[NRW + 1] =
 {
 	SYM_NULL, SYM_BEGIN, SYM_CALL, SYM_CONST, SYM_DO, SYM_END,
 	SYM_IF, SYM_ODD, SYM_PROCEDURE, SYM_THEN, SYM_VAR, SYM_WHILE,
-	SYM_ELSE,SYM_ELSE_IF,SYM_EXIT,SYM_RETURN,SYM_FOR, SYM_PRINTF
+	SYM_ELSE,SYM_ELSE_IF,SYM_EXIT,SYM_RETURN,SYM_FOR, SYM_PRINTF, SYM_RANDOM
 };
 
 //符号代号集，与符号一一对应
