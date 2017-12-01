@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#define NRW        16     // number of reserved words
+#define NRW        17     // number of reserved words
 #define TXMAX      500    // length of identifier table
 #define MAXNUMLEN  14     // maximum number of digits in numbers
 #define NSYM       19     // maximum number of symbols in array ssym and csym
@@ -69,7 +69,11 @@ enum symtype
 
 	//Dong Shi, 11.23, add SYM_INC, SYM_DEC
 	SYM_INC,
-	SYM_DEC
+	SYM_DEC,
+
+	//Dong Shi, 12.1, add SYM_FORMAT and SYM_PRINTF
+	SYM_FORMAT,
+	SYM_PRINTF
 };
 
 //Add ID_POINTER //zjr 17.11.2 
@@ -86,9 +90,10 @@ enum idtype
 //add ASTO:store top to /pbase //zjr 11.2
 //add LODA: load argument from stack //zjr 11.2
 //delete PAS	//zjr 11.2
+//Dong Shi, 12.1, Add OUTS op
 enum opcode
 {
-	LIT, OPR, LOD, STO, CAL, INT, JMP, JPC,JLEZ,JGZ,RET,APOP,ASTO,LODA,LEA, LODAR, STOAR
+	LIT, OPR, LOD, STO, CAL, INT, JMP, JPC,JLEZ,JGZ,RET,APOP,ASTO,LODA,LEA, LODAR, STOAR, OUTS
 };
 
 //Dong Shi, 11.22, Add op OPR_INC and OPR_DEC
@@ -152,6 +157,11 @@ char* err_msg[] =
 /* 32 */    "There are too many levels.",
 /* 33 */    "Procedure not found!",	//added by zjr //11.7 //#Z9
 /* 34 */    "Has been declared!"	//zjr //11.21
+//Dong Shi, 12.1, Add some error about printf
+/* 35 */	"( expected.",
+/* 36 */	"String format expected.",
+/* 37 */	", expected.",
+/* 38 */	""
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -170,23 +180,30 @@ int dx;		//modified by zjr //11.7
 
 char line[512];	//zjr 11.27
 
+//Dong Shi, 12.1, Add IOStack
+char IOStack[32][128];
+char tmpStack[128];
+int IOStackNum = 0;
+
 instruction code[CXMAX];
 int funcparam=0;
 
 //关键字集
+//Dong Shi, 12.1, Add printf
 char* word[NRW + 1] =
 {
 	"", /* place holder */
 	"begin", "call", "const", "do", "end","if",
-	"odd", "procedure", "then", "var", "while","else","else if","exit","return","for"
+	"odd", "procedure", "then", "var", "while","else","else if","exit","return","for", "printf"
 };
 
 //关键字代号集，与关键字一一对应
+//Dong Shi, 12.1, Add SYM_PRINTF
 int wsym[NRW + 1] =
 {
 	SYM_NULL, SYM_BEGIN, SYM_CALL, SYM_CONST, SYM_DO, SYM_END,
 	SYM_IF, SYM_ODD, SYM_PROCEDURE, SYM_THEN, SYM_VAR, SYM_WHILE,
-	SYM_ELSE,SYM_ELSE_IF,SYM_EXIT,SYM_RETURN,SYM_FOR
+	SYM_ELSE,SYM_ELSE_IF,SYM_EXIT,SYM_RETURN,SYM_FOR, SYM_PRINTF
 };
 
 //符号代号集，与符号一一对应
@@ -205,10 +222,11 @@ char csym[NSYM + 1] =
 //汇编指令集
 //Dong Shi, 10.29, Add RET
 //zjr , 11.2 ,Add APOP,ASTO,LODA. Delete PAS
-#define MAXINS   17
+//Dong Shi, 12.1, Add OUTS
+#define MAXINS   18
 char* mnemonic[MAXINS] =
 {
-	"LIT", "OPR", "LOD", "STO", "CAL", "INT", "JMP", "JPC","JLEZ","JGZ", "RET","APOP","ASTO","LODA", "LEA", "LODAR", "STOAR"
+	"LIT", "OPR", "LOD", "STO", "CAL", "INT", "JMP", "JPC","JLEZ","JGZ", "RET","APOP","ASTO","LODA", "LEA", "LODAR", "STOAR", "OUTS"
 };
 
 typedef struct

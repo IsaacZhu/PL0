@@ -131,6 +131,25 @@ void getsym(void)
 			return;
 		}
 	}
+	// Dong Shi, 12.1, Add "..." recognize
+	else if(ch == '\"')
+	{
+		int count = 0;
+		char last = '\"';
+		getch();
+		while(!(ch == '\"' && last != '\\') && count < 128)
+		{
+			++ count;
+			tmpStack[count] = ch;
+			last = ch;
+			getch();
+		}
+		tmpStack[0] = count;
+
+		sym = SYM_FORMAT;
+		getch();
+		return;
+	}
 	ch = lastChar;
 
 	if (isalpha(ch))
@@ -1097,12 +1116,81 @@ void Endcondition(int JPcx)//add by ywt 2017.10.25,用于回填JMP_and跳转地�
 	}
 }
 
+//Dong Shi, 12.1, add format translate
+void formatTranslate(){
+	int length = tmpStack[0];
+	int i;
+	int count = 0;
+	char current, next, id;
+
+	for(i = 1; i <= length; ++ i){
+        current = tmpStack[i];
+
+		switch(current){
+			case '\\':
+			++ i;
+			next = tmpStack[i];
+			switch(next){
+				case '@':
+				++ count;
+				IOStack[IOStackNum][count] = '@';
+				break;
+				case 'a':
+				++ count;
+				IOStack[IOStackNum][count] = '\a';
+				break;
+				case 'b':
+				++ count;
+				IOStack[IOStackNum][count] = '\b';
+				break;
+				case 'n':
+				++ count;
+				IOStack[IOStackNum][count] = '\n';
+				break;
+				case 'r':
+				++ count;
+				IOStack[IOStackNum][count] = '\r';
+				break;
+				case 't':
+				++ count;
+				IOStack[IOStackNum][count] = '\t';
+				break;
+				case '\"':
+				++ count;
+				IOStack[IOStackNum][count] = '\"';
+				break;
+				case '\'':
+				++ count;
+				IOStack[IOStackNum][count] = '\'';
+				break;
+				case '\\':
+				++ count;
+				IOStack[IOStackNum][count] = '\\';
+				break;
+			}
+			break;
+			case '@':
+			++ i;
+			id = '0' - tmpStack[i];
+			++ count;
+			IOStack[IOStackNum][count] = id-1;
+            break;
+            default:
+            ++ count;
+            IOStack[IOStackNum][count] = current; 
+            break;
+		}
+	}
+
+	IOStack[IOStackNum][0] = count;
+}
 
 //////////////////////////////////////////////////////////////////////
 void statement(symset fsys)
 {
 	int i, cx1, cx2,cx3,cx4,cx5,depth,cx6;
 	symset set1, set;
+	void formatTranslate();
 
 	if (sym == SYM_IDENTIFIER)
 	{ // variable assignment
@@ -1570,6 +1658,35 @@ void statement(symset fsys)
 		{
 			error(17); // ';' or 'end' expected.
 		}		
+	}
+	//Dong Shi, 12.1, Add SYM_PRINTF
+	else if (sym == SYM_PRINTF)
+	{
+		int count = 0;
+		getsym();
+		if (sym == SYM_LPAREN)
+		{
+			getsym();
+			if (sym == SYM_FORMAT)
+			{
+				formatTranslate();
+				getsym();
+				while (sym == SYM_COMMA)
+				{
+					++ count;
+					getsym();
+					expression(fsys);
+				}
+				
+				gen(OUTS, count, IOStackNum);
+				++ IOStackNum;
+				
+				if (sym != SYM_RPAREN){error(22);}
+				getsym();
+			}
+			else{error(36);}
+		}
+		else{error(35);}
 	}
 	//test(fsys, phi, 19);
 } // statement
@@ -2066,6 +2183,12 @@ void interpret()
 	int tmp;
 	//int itr;
 
+	int outsItr;
+	int referenceNum;
+	int id;
+	char outsChar;
+	int length;
+
 	printf("Begin executing PL/0 program.\n");
 
 	pc = 0;
@@ -2074,12 +2197,6 @@ void interpret()
 	stack[1] = stack[2] = stack[3] = 0;
 	do
 	{
-		// printf("stack:\n");
-		// for(itr = 4; itr <= top+1; ++ itr)printf("%2d ", stack[itr]);
-		// printf("\n");
-		// for(itr = 4; itr <= top-1; ++ itr)printf("   ", stack[itr]);
-		// printf(" ^\n");
-
 		i = code[pc++];
 		switch (i.f)
 		{
@@ -2195,7 +2312,8 @@ void interpret()
 			break;
 		case STO:
 			stack[base(stack, b, i.l) + i.a] = stack[top];
-			printf("%d\n", stack[top]);
+			//Dong Shi, 12.1, disable STO output
+			//printf("%d\n", stack[top]);
 			top--;
 			break;
 		//Dong Shi, 10.29, Add OP RET
@@ -2261,8 +2379,26 @@ void interpret()
 			break;
 		case STOAR:
 			stack[stack[top - 1]] = stack[top];
-			printf("%d\n", stack[top]);
+			//Dong Shi, 12.1, disable STOAR output			
+			//printf("%d\n", stack[top]);
 			top = top - 2;
+			break;
+		case OUTS:
+			id = i.a;
+			referenceNum = i.l;
+			length = IOStack[id][0];
+
+			for(outsItr = 1; outsItr <= length; ++ outsItr)
+			{
+				outsChar = IOStack[id][outsItr];
+				if(outsChar < 0)
+				{
+					printf("%d", stack[top-outsChar-referenceNum]);
+				}
+				else
+					printf("%c", IOStack[id][outsItr]);
+			}
+			top -= referenceNum;
 			break;
 		} // switch
 	}

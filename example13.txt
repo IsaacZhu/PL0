@@ -1,0 +1,15 @@
+var result, a, b, c;
+procedure fact(n);
+begin
+	if n<2 then return 1;
+	else return fact(-1+n)*n;
+end;
+begin
+	//result:=fact(5);
+    a := 2;
+    b := 999;
+    printf("hello @0\t\t\t@1\n@0\"@2\n", a, b, fact(5));
+    printf("@0\n", fact(3));
+    printf("@0\n", fact(2));
+    result := a + b;
+end.
