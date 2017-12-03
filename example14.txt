@@ -1,0 +1,10 @@
+var result, a, b, c;
+begin
+    a := 10;
+    printf("@0\n", a);
+    c := (b := a + 7);
+    printf("@0\n", c := (b := a + 7) * 9);
+    printf("@0, @1\n", b, c);
+    b := (b := a + 7) * 9;
+    printf("@0\n", b);
+end.

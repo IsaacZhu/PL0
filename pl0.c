@@ -572,6 +572,9 @@ void factor(symset fsys)
 	int i, depth;/**/
 	symset set, set1;
 
+	int thisLevel;
+	int thisAddress;
+
 	//Dong Shi, 10.29, disable "factor cannot appear without a statement" check
 	//test(facbegsys, fsys, 24); // The symbol can not be as the beginning of an expression.
 
@@ -601,6 +604,8 @@ void factor(symset fsys)
 					//Dong Shi, 12.3, store tmp level and address (for inc or dec)
 					activeLevel = level - mk->level;
 					activeAddress = mk->address;
+					thisLevel = level - mk->level;
+					thisAddress =  mk->address;
 					break;
 				case ID_PROCEDURE:
 					//Dong Shi, 10.29, Handle Procedure
@@ -792,22 +797,35 @@ void factor(symset fsys)
 			getsym();
 
 			//Dong Shi, 12.3, Add ++/-- handling
-			while (sym == SYM_INC || sym == SYM_DEC)
+			if (sym == SYM_INC || sym == SYM_DEC)
 			{
-				if(sym == SYM_INC)
-					gen(OPR, 0, OPR_INC);
-				else
-					gen(OPR, 0, OPR_DEC);
+				while (sym == SYM_INC || sym == SYM_DEC)
+				{
+					if(sym == SYM_INC)
+						gen(OPR, 0, OPR_INC);
+					else
+						gen(OPR, 0, OPR_DEC);
 
-				gen(STO, activeLevel, activeAddress);
-				gen(LOD, activeLevel, activeAddress);
+					gen(STO, activeLevel, activeAddress);
+					gen(LOD, activeLevel, activeAddress);
 
-				if(sym == SYM_INC)
-					gen(OPR, 0, OPR_DEC);
-				else
-					gen(OPR, 0, OPR_INC);
-				
+					if(sym == SYM_INC)
+						gen(OPR, 0, OPR_DEC);
+					else
+						gen(OPR, 0, OPR_INC);
+					
+					getsym();
+				}
+			}
+			//Dong Shi, 12.3, Add assign handling
+			else if (sym == SYM_BECOMES)
+			{
 				getsym();
+				expression(fsys);
+				gen(STO, thisLevel, thisAddress);
+				gen(LOD, thisLevel, thisAddress);
+
+
 			}
 		}
 		else if (sym == SYM_NUMBER)
@@ -833,22 +851,32 @@ void factor(symset fsys)
 				getsym();
 
 				//Dong Shi, 12.3, Add ++/-- handling
-				while (sym == SYM_INC || sym == SYM_DEC)
+				if (sym == SYM_INC || sym == SYM_DEC){
+					while (sym == SYM_INC || sym == SYM_DEC)
+					{
+						if(sym == SYM_INC)
+							gen(OPR, 0, OPR_INC);
+						else
+							gen(OPR, 0, OPR_DEC);
+
+						gen(STO, activeLevel, activeAddress);
+						gen(LOD, activeLevel, activeAddress);
+
+						if(sym == SYM_INC)
+							gen(OPR, 0, OPR_DEC);
+						else
+							gen(OPR, 0, OPR_INC);
+						
+						getsym();
+					}
+				}			
+				//Dong Shi, 12.3, Add assign handling
+				else if (sym == SYM_BECOMES)
 				{
-					if(sym == SYM_INC)
-						gen(OPR, 0, OPR_INC);
-					else
-						gen(OPR, 0, OPR_DEC);
-
-					gen(STO, activeLevel, activeAddress);
-					gen(LOD, activeLevel, activeAddress);
-
-					if(sym == SYM_INC)
-						gen(OPR, 0, OPR_DEC);
-					else
-						gen(OPR, 0, OPR_INC);
-					
 					getsym();
+					expression(fsys);
+					gen(STO, thisLevel, thisAddress);
+					gen(LOD, thisLevel, thisAddress);
 				}
 			}
 			else
@@ -1442,7 +1470,7 @@ void statement(symset fsys)
 			}
 
 			gen(STO, activeLevel, activeAddress);
-			
+
 			return;
 		}
 		else
