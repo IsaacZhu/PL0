@@ -839,15 +839,25 @@ void factor(symset fsys)
 		//Dong Shi, 12.1, Add random
 		else if (sym == SYM_RANDOM)
 		{
+			int region = 2147483647;
+
 			getsym(); // '('
-			getsym(); // ')'
+			getsym(); // ')' or parameter
+			//Dong Shi, 12.3, Add constant parameter
+			if (sym == SYM_NUMBER)
+			{
+				region = num;
+
+				getsym(); //')'
+			}
+			
 			getsym();
 
 			struct timeval tpstart;
 			gettimeofday(&tpstart,NULL);
     		srand(tpstart.tv_usec);
 
-			gen(LIT, 0, rand());
+			gen(LIT, 0, rand()%region);
 		}
 		//test(fsys, createset(SYM_LPAREN, SYM_NULL), 23);
 	//} // while
