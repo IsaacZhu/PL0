@@ -198,6 +198,10 @@ int IOStackNum = 0;
 int activeLevel;
 int activeAddress;
 
+//Dong Shi, 12.3, Add list assign record
+int AssignStackLeft[64];
+int AssignStackTop;
+
 instruction code[CXMAX];
 int funcparam=0;
 

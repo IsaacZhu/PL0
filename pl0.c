@@ -1303,6 +1303,11 @@ void statement(symset fsys)
 	symset set1, set;
 	void formatTranslate();
 
+	int thisLevel, thisAddress;
+
+	//Dong Shi, 12.3, initial AssignStackTop
+	AssignStackTop = 0;
+
 	if (sym == SYM_IDENTIFIER)
 	{ // variable assignment
 		mask* mk;
@@ -1446,6 +1451,8 @@ void statement(symset fsys)
 			//Dong Shi, 12.3, record mk
 			activeLevel = level - mk->level;
 			activeAddress = mk->address;
+			thisLevel = level - mk->level;
+			thisAddress = mk->address;
 		}
 
 		if (sym == SYM_BECOMES)
@@ -1473,13 +1480,63 @@ void statement(symset fsys)
 
 			return;
 		}
+		//Dong Shi, 12.3, Add list assign
+		else if (sym == SYM_COMMA)
+		{
+			++ AssignStackTop;
+			AssignStackLeft[2*AssignStackTop] = thisLevel;
+			AssignStackLeft[2*AssignStackTop+1] = thisAddress;
+
+			while (sym == SYM_COMMA)
+			{
+				getsym();
+				if (sym == SYM_IDENTIFIER)
+				{
+					if ((i = position(id)) == 0)
+					{
+						error(11); // Undeclared identifier.
+					}
+					else
+					{
+						if (table[i].kind == ID_VARIABLE)
+						{
+							mask *tmpMask = (mask*) &table[i];
+							++ AssignStackTop;
+							AssignStackLeft[2*AssignStackTop] = level - tmpMask->level;
+							AssignStackLeft[2*AssignStackTop+1] = tmpMask->address;
+						}
+						else
+						{
+							error(12);
+						}
+					}
+				}
+			}
+		}
 		else
 		{
 			error(13); // ':=' expected.
 		}
 
 		expression(fsys);
-		if(table[i].kind == ID_VARIABLE)
+
+		//Dong Shi, 12.3, Add list assignment
+		int expressionStackCounter = 0;
+		while(sym == SYM_COMMA)
+		{
+			getsym();
+			expression(fsys);
+		}
+
+		if(AssignStackTop != 0)
+		{
+			while(AssignStackTop != 0)
+			{
+				gen(STO, AssignStackLeft[2*AssignStackTop], AssignStackLeft[2*AssignStackTop+1]);
+				-- AssignStackTop;
+			}
+		}
+		else if(table[i].kind == ID_VARIABLE)
 		{
 			if (i)
 			{
