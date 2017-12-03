@@ -168,7 +168,9 @@ char* err_msg[] =
 /* 36 */	"String format expected.",
 /* 37 */	", expected.",
 //Dong Shi, 12.3, Add error about input
-/* 38 */	"Input destination should be a variable."
+/* 38 */	"Input destination should be a variable.",
+//Dong Shi, 12.3, Add more error about ++/--
+/* 39 */	"Opreation increase or decrease must be operated on a variable."
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -191,6 +193,10 @@ char line[512];	//zjr 11.27
 char IOStack[32][128];
 char tmpStack[128];
 int IOStackNum = 0;
+
+//Dong Shi, 12.3, Add tmp var record
+int activeLevel;
+int activeAddress;
 
 instruction code[CXMAX];
 int funcparam=0;

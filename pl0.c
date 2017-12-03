@@ -571,7 +571,7 @@ void factor(symset fsys)
 	void logi_or_expression(symset fsys);
 	int i, depth;/**/
 	symset set, set1;
-	
+
 	//Dong Shi, 10.29, disable "factor cannot appear without a statement" check
 	//test(facbegsys, fsys, 24); // The symbol can not be as the beginning of an expression.
 
@@ -597,7 +597,10 @@ void factor(symset fsys)
 					break;
 				case ID_VARIABLE:
 					mk = (mask*) &table[i];
-					gen(LOD, level - mk->level, mk->address);
+					gen(LOD, level - mk->level, mk->address);	
+					//Dong Shi, 12.3, store tmp level and address (for inc or dec)
+					activeLevel = level - mk->level;
+					activeAddress = mk->address;
 					break;
 				case ID_PROCEDURE:
 					//Dong Shi, 10.29, Handle Procedure
@@ -787,6 +790,25 @@ void factor(symset fsys)
 				} // switch
 			}
 			getsym();
+
+			//Dong Shi, 12.3, Add ++/-- handling
+			while (sym == SYM_INC || sym == SYM_DEC)
+			{
+				if(sym == SYM_INC)
+					gen(OPR, 0, OPR_INC);
+				else
+					gen(OPR, 0, OPR_DEC);
+
+				gen(STO, activeLevel, activeAddress);
+				gen(LOD, activeLevel, activeAddress);
+
+				if(sym == SYM_INC)
+					gen(OPR, 0, OPR_DEC);
+				else
+					gen(OPR, 0, OPR_INC);
+				
+				getsym();
+			}
 		}
 		else if (sym == SYM_NUMBER)
 		{
@@ -809,11 +831,46 @@ void factor(symset fsys)
 			{
 				lev--;	//ywt 11.28	//level of short-cir-cal
 				getsym();
+
+				//Dong Shi, 12.3, Add ++/-- handling
+				while (sym == SYM_INC || sym == SYM_DEC)
+				{
+					if(sym == SYM_INC)
+						gen(OPR, 0, OPR_INC);
+					else
+						gen(OPR, 0, OPR_DEC);
+
+					gen(STO, activeLevel, activeAddress);
+					gen(LOD, activeLevel, activeAddress);
+
+					if(sym == SYM_INC)
+						gen(OPR, 0, OPR_DEC);
+					else
+						gen(OPR, 0, OPR_INC);
+					
+					getsym();
+				}
 			}
 			else
 			{
 				error(22); // Missing ')'.
 			}
+		}
+		//Dong Shi, 12.3, Add ++/-- handling
+		else if (sym == SYM_INC || sym == SYM_DEC)
+		{
+			int INCDECSym = sym;
+
+			getsym();
+			factor(fsys);
+
+			if(INCDECSym == SYM_INC)
+				gen(OPR, 0, OPR_INC);
+			else
+				gen(OPR, 0, OPR_DEC);
+			
+			gen(STO, activeLevel, activeAddress);
+			gen(LOD, activeLevel, activeAddress);
 		}
 		else if(sym == SYM_MINUS) // UMINUS,  Expr -> '-' Expr
 		{  
@@ -1358,6 +1415,9 @@ void statement(symset fsys)
 		else  	//id_variable
 		{		
 			mk = (mask*) &table[i];
+			//Dong Shi, 12.3, record mk
+			activeLevel = level - mk->level;
+			activeAddress = mk->address;
 		}
 
 		if (sym == SYM_BECOMES)
@@ -1365,41 +1425,25 @@ void statement(symset fsys)
 			getsym();
 		}
 		//Dong Shi, 11.23, Add var ++ and var --
-		else if (sym == SYM_INC)
+		//Dong Shi, 12.3, recode the implement of inc and dec
+		else if (sym == SYM_INC || sym == SYM_DEC)
 		{
-			if(table[i].kind == ID_VARIABLE)
+			gen(LOD, activeLevel, activeAddress);
+
+			//Dong Shi, 12.3, Add ++/-- handling
+			while (sym == SYM_INC || sym == SYM_DEC)
 			{
-				if (i)
-				{
-					gen(LOD, level - mk->level, mk->address);
+				if(sym == SYM_INC)
 					gen(OPR, 0, OPR_INC);
-					gen(STO, level - mk->level, mk->address);
-					getsym();
-					return;
-				}
 				else
-				{
-					error(11);
-				}
-			}
-		}
-		else if (sym == SYM_DEC)
-		{
-			if(table[i].kind == ID_VARIABLE)
-			{
-				if (i)
-				{
-					gen(LOD, level - mk->level, mk->address);
 					gen(OPR, 0, OPR_DEC);
-					gen(STO, level - mk->level, mk->address);
-					getsym();
-					return;
-				}
-				else
-				{
-					error(11);
-				}
+
+				getsym();
 			}
+
+			gen(STO, activeLevel, activeAddress);
+			
+			return;
 		}
 		else
 		{
@@ -1598,63 +1642,7 @@ void statement(symset fsys)
 		code[cx2].a = cx;
 		Endcondition(code[cx2].a);
 	}
-	else if (sym == SYM_INC)
-	{
-		//printf("########## ++ var\n");
-		getsym();
-		if (sym == SYM_IDENTIFIER)
-		{
-			if ((i = position(id)) == 0)
-			{
-				error(11); // Undeclared identifier.f
-			}
-			else
-			{
-				switch (table[i].kind)
-				{
-					mask* mk;
-					case ID_VARIABLE:
-						mk = (mask*) &table[i];
-						gen(LOD, level - mk->level, mk->address);
-						gen(OPR, 0, OPR_INC);
-						gen(STO, level - mk->level, mk->address);
-						getsym();
-						break;
-					default: 
-						error(26); 
-						break;
-				}
-			}
-		}
-	}
-	else if (sym == SYM_DEC)
-	{
-		getsym();
-		if (sym == SYM_IDENTIFIER)
-		{
-			if ((i = position(id)) == 0)
-			{
-				error(11); // Undeclared identifier.
-			}
-			else
-			{
-				switch (table[i].kind)
-				{
-					mask* mk;
-					case ID_VARIABLE:
-						mk = (mask*) &table[i];
-						gen(LOD, level - mk->level, mk->address);
-						gen(OPR, 0, OPR_DEC);
-						gen(STO, level - mk->level, mk->address);
-						getsym();
-						break;
-					default: 
-						error(26); 
-						break;
-				}	
-			}
-		}
-	}
+	// Dong Shi, 12.3, delete inc and dec implement in statement
 	//Dong Shi, 11.23, disable error 19 check(for supporting ++ and --)
 	else if(sym==SYM_LBRACE)
 	{
@@ -1742,6 +1730,12 @@ void statement(symset fsys)
 		}
 		getsym(); //')'
 		getsym();
+	}
+	//Dong Shi, 12.3, make it possible let a factor be a statement
+	else
+	{
+		// Of course you can have a try to change it into an expression
+		factor(fsys);
 	}
 	//test(fsys, phi, 19);
 } // statement
