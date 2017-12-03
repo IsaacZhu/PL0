@@ -12,4 +12,8 @@ begin
     printf("@0\n", fact(2));
     result := a + b;
     printf("@0\t@1\t@0\n", random(), random(15));
+
+    input(a);
+    input(b);
+    printf("The num input just now is @0, @1\n", a, b);
 end.

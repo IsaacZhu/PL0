@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#define NRW        18     // number of reserved words
+#define NRW        19     // number of reserved words
 #define TXMAX      500    // length of identifier table
 #define MAXNUMLEN  14     // maximum number of digits in numbers
 #define NSYM       19     // maximum number of symbols in array ssym and csym
@@ -75,7 +75,10 @@ enum symtype
 	//Dong Shi, 12.1, add SYM_RANDOM
 	SYM_FORMAT,
 	SYM_PRINTF,
-	SYM_RANDOM
+	SYM_RANDOM,
+
+	//Dong Shi, 12.3, add SYM_INPUT
+	SYM_INPUT
 };
 
 //Add ID_POINTER //zjr 17.11.2 
@@ -93,9 +96,10 @@ enum idtype
 //add LODA: load argument from stack //zjr 11.2
 //delete PAS	//zjr 11.2
 //Dong Shi, 12.1, Add OUTS op
+//Dong Shi, 12.3, Add IN op
 enum opcode
 {
-	LIT, OPR, LOD, STO, CAL, INT, JMP, JPC,JLEZ,JGZ,RET,APOP,ASTO,LODA,LEA, LODAR, STOAR, OUTS
+	LIT, OPR, LOD, STO, CAL, INT, JMP, JPC,JLEZ,JGZ,RET,APOP,ASTO,LODA,LEA, LODAR, STOAR, OUTS, IN
 };
 
 //Dong Shi, 11.22, Add op OPR_INC and OPR_DEC
@@ -163,7 +167,8 @@ char* err_msg[] =
 /* 35 */	"( expected.",
 /* 36 */	"String format expected.",
 /* 37 */	", expected.",
-/* 38 */	""
+//Dong Shi, 12.3, Add error about input
+/* 38 */	"Input destination should be a variable."
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -193,21 +198,24 @@ int funcparam=0;
 //关键字集
 //Dong Shi, 12.1, Add printf
 //Dong Shi, 12.1, Add random
+//Dong Shi, 12.3, Add input
 char* word[NRW + 1] =
 {
 	"", /* place holder */
 	"begin", "call", "const", "do", "end","if",
-	"odd", "procedure", "then", "var", "while","else","else if","exit","return","for", "printf", "random"
+	"odd", "procedure", "then", "var", "while","else","else if","exit","return","for", "printf", "random", "input"
 };
 
 //关键字代号集，与关键字一一对应
 //Dong Shi, 12.1, Add SYM_PRINTF
 //Dong Shi, 12.1, Add SYM_RANDOM
+//Dong Shi, 12.3, Add SYM_INPUT
 int wsym[NRW + 1] =
 {
 	SYM_NULL, SYM_BEGIN, SYM_CALL, SYM_CONST, SYM_DO, SYM_END,
 	SYM_IF, SYM_ODD, SYM_PROCEDURE, SYM_THEN, SYM_VAR, SYM_WHILE,
-	SYM_ELSE,SYM_ELSE_IF,SYM_EXIT,SYM_RETURN,SYM_FOR, SYM_PRINTF, SYM_RANDOM
+	SYM_ELSE,SYM_ELSE_IF,SYM_EXIT,SYM_RETURN,SYM_FOR, SYM_PRINTF,
+	SYM_RANDOM, SYM_INPUT
 };
 
 //符号代号集，与符号一一对应
@@ -227,10 +235,11 @@ char csym[NSYM + 1] =
 //Dong Shi, 10.29, Add RET
 //zjr , 11.2 ,Add APOP,ASTO,LODA. Delete PAS
 //Dong Shi, 12.1, Add OUTS
-#define MAXINS   18
+//Dong Shi, 12.3, Add IN
+#define MAXINS   19
 char* mnemonic[MAXINS] =
 {
-	"LIT", "OPR", "LOD", "STO", "CAL", "INT", "JMP", "JPC","JLEZ","JGZ", "RET","APOP","ASTO","LODA", "LEA", "LODAR", "STOAR", "OUTS"
+	"LIT", "OPR", "LOD", "STO", "CAL", "INT", "JMP", "JPC","JLEZ","JGZ", "RET","APOP","ASTO","LODA", "LEA", "LODAR", "STOAR", "OUTS", "IN"
 };
 
 typedef struct

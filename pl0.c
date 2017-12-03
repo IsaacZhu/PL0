@@ -1714,6 +1714,35 @@ void statement(symset fsys)
 		}
 		else{error(35);}
 	}
+	//Dong Shi, 12.3, Add SYM_INPUT handling
+	else if (sym == SYM_INPUT)
+	{
+		getsym(); //'('
+		getsym(); //ID
+		if (sym == SYM_IDENTIFIER)
+		{
+			if ((i = position(id)) == 0)
+			{
+				error(11); // Undeclared identifier.
+			}
+			else
+			{
+				if (table[i].kind == ID_VARIABLE)
+				{
+					mask* mk;
+					mk = (mask*) &table[i];
+					gen(IN, 0, 0);
+					gen(STO, level - mk->level, mk->address);
+				}
+				else
+				{
+					error(38);
+				}
+			}
+		}
+		getsym(); //')'
+		getsym();
+	}
 	//test(fsys, phi, 19);
 } // statement
 
@@ -2425,6 +2454,10 @@ void interpret()
 					printf("%c", IOStack[id][outsItr]);
 			}
 			top -= referenceNum;
+			break;
+		case IN:
+			++ top;
+			scanf("%d", &stack[top]);
 			break;
 		} // switch
 	}
