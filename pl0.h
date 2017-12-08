@@ -82,7 +82,11 @@ enum symtype
 
 	//ZJR 12.8 ADD '?' AND ':',WHICH IS SYM_QUES AND SYM_COLON #Z1
 	SYM_QUES,
-	SYM_COLON 
+	SYM_COLON,
+
+	//ZJR 12.8 ADD '<<' AND '>>' //#Z5
+	SYM_LSHIFT,
+	SYM_RSHIFT 
 };
 
 //Add ID_POINTER //zjr 17.11.2 
@@ -118,7 +122,10 @@ enum oprcode
 	
 	OPR_BITAND,OPR_BITOR,OPR_BITXOR,OPR_MOD,
 
-	OPR_INC, OPR_DEC
+	OPR_INC, OPR_DEC,
+
+	//ADDED BY ZJR 12.8 #Z5
+	OPR_LSH,OPR_RSH
 };
 
 

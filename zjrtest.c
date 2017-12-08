@@ -154,7 +154,10 @@ void printsym()
 
 	//ZJR 12.8 ADD '?' AND ':',WHICH IS SYM_QUES AND SYM_COLON #Z1
 	"SYM_QUES",
-	"SYM_COLON"
+	"SYM_COLON",
+	//ZJR 12.8 ADD '<<' AND '>>' //#Z5
+	"SYM_LSHIFT",
+	"SYM_RSHIFT"
 };
 	printf("sym is %s\n",symbset[sym]);
 }

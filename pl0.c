@@ -212,6 +212,12 @@ void getsym(void)
 			sym = SYM_GEQ;     // >=
 			getch();
 		}
+		//right shift op //added by zjr //12.8 #Z6 
+		else if (ch == '>')
+		{
+			sym=SYM_RSHIFT;
+			getch();
+		}
 		else
 		{
 			sym = SYM_GTR;     // >
@@ -228,6 +234,12 @@ void getsym(void)
 		else if (ch == '>')
 		{
 			sym = SYM_NEQ;     // <>
+			getch();
+		}
+		//left shift op //added by zjr //12.8 #Z6 
+		else if (ch == '<')
+		{
+			sym=SYM_LSHIFT;
 			getch();
 		}
 		else
@@ -348,9 +360,9 @@ void enter(int kind)
 	int arraySize = 1;
 
 	//check if there's parameters who has same name	//zjr 11.21
-	int pos=0;
+	int pos=position(id);
 	int i;
-	if (pos=position(id)!=0)
+	if (pos!=0)
 	{
 		mk=(mask *)&table[pos];
 		if (mk->level==level)		//same level, error
@@ -545,20 +557,21 @@ void vardeclaration(void)
 void listcode(int from, int to)
 {
 	int i;
-	char *oprset[22]={"OPR_RET", "OPR_NEG", "OPR_ADD", "OPR_MIN",
+	char str[10];
+	char *oprset[24]={"OPR_RET", "OPR_NEG", "OPR_ADD", "OPR_MIN",
 	"OPR_MUL", "OPR_DIV", "OPR_ODD", "OPR_LOGIEQU",
 	"OPR_NEQ", "OPR_LES", "OPR_LEQ", "OPR_GTR",
 	"OPR_GEQ", 
 	"OPR_AND", "OPR_OR", "OPR_ANTI",
 	"OPR_BITAND","OPR_BITOR","OPR_BITXOR","OPR_MOD",
-	"OPR_INC", "OPR_DEC"};
+	"OPR_INC", "OPR_DEC","OPR_LSH","OPR_RSH"};	//add OPR_LSH and OPR_RSH //zjr 12.8 #Z10
 	printf("\n");
 	for (i = from; i < to; i++)
 	{
 		//zjr 11.27
-		if (code[i].f==1)	//OPR
+		if (code[i].f==1 && code[i].a<24)	//OPR
 		{
-				printf("%5d %s\t%d\t%s\n", i, mnemonic[code[i].f], code[i].l, oprset[code[i].a]);
+			printf("%5d %s\t%d\t%s\n", i, mnemonic[code[i].f], code[i].l, oprset[code[i].a]);
 		}
 		else
 		printf("%5d %s\t%d\t%d\n", i, mnemonic[code[i].f], code[i].l, code[i].a);
@@ -979,7 +992,7 @@ void term(symset fsys)
 } // term
 
 //////////////////////////////////////////////////////////////////////
-void addictive_expression(symset fsys)			//<===========================name changed by lijiquan
+void additive_expression(symset fsys)			//<===========================name changed by lijiquan
 {
 	int addop;
 	symset set;
@@ -1005,6 +1018,30 @@ void addictive_expression(symset fsys)			//<===========================name chan
 	destroyset(set);
 } // addictive_expression
 
+//handle left or right shift expression
+//zjr 12.8 #Z7
+void shift_expression(symset fsys)
+{
+	symset set;
+	int shiftop;
+	set=uniteset(fsys,createset(SYM_LSHIFT,SYM_RSHIFT,SYM_NULL));
+	additive_expression(set);
+	while (sym == SYM_LSHIFT || sym == SYM_RSHIFT)
+	{
+		shiftop=sym;
+		getsym();
+		additive_expression(set);
+		if (shiftop == SYM_LSHIFT)	//'<<'
+		{
+			gen(OPR,0,OPR_LSH);
+		}
+		else	//'>>'
+		{
+			gen(OPR,0,OPR_RSH);
+		}
+	}
+}//shift expr
+
 //zjr 11.27
 //handle relation expression
 void rel_expr(symset fsys)
@@ -1012,14 +1049,14 @@ void rel_expr(symset fsys)
 	symset set;
 	int relop;
 	set = uniteset(fsys, createset(SYM_LOGIEQU, SYM_NEQ, SYM_LES, SYM_LEQ, SYM_GTR, SYM_GEQ, SYM_NULL));
-	addictive_expression(set);
+	shift_expression(set); //zjr 12.8 #Z8
 	while(sym==SYM_GTR||sym==SYM_LOGIEQU
 			||sym==SYM_NEQ||sym==SYM_LES||sym==SYM_GEQ
 			||sym==SYM_LEQ)
 	{
 		relop=sym;
 		getsym();
-		addictive_expression(set);
+		shift_expression(set);	//zjr 12.8 #Z8
 		switch (relop)
 		{
 			case SYM_LOGIEQU:			
@@ -2468,6 +2505,15 @@ void interpret()
 				break;
 			case OPR_DEC:
 				-- stack[top];
+				break;
+			//add left shift and right shift //ZJR 12.8 #Z9
+			case OPR_LSH:
+				top--;
+				stack[top] = stack[top] << stack[top + 1];
+				break;
+			case OPR_RSH:
+				top--;
+				stack[top] = stack[top] >> stack[top + 1];
 				break;
 			} // switch
 			break;
