@@ -143,7 +143,18 @@ void printsym()
 
 	//Dong Shi, 11.23, add SYM_INC, SYM_DEC
 	"SYM_INC",
-	"SYM_DEC"
+	"SYM_DEC",
+
+	"SYM_FORMAT",
+	"SYM_PRINTF",
+	"SYM_RANDOM",
+
+	//Dong Shi, 12.3, add SYM_INPUT
+	"SYM_INPUT",
+
+	//ZJR 12.8 ADD '?' AND ':',WHICH IS SYM_QUES AND SYM_COLON #Z1
+	"SYM_QUES",
+	"SYM_COLON"
 };
 	printf("sym is %s\n",symbset[sym]);
 }

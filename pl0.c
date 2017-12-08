@@ -13,12 +13,13 @@
 #include "pl0.h"
 #include "set.c"
 
+#include "zjrtest.c"
 //////////////////////////////////////////////////////////////////////
 // print error message.
 void error(int n)
 {
 	int i;
-
+	printsym();//tc
 	printf("      ");
 	for (i = 1; i <= cc - 1; i++)
 		printf(" ");
@@ -199,7 +200,8 @@ void getsym(void)
 		}
 		else
 		{
-			sym = SYM_NULL;       // illegal?
+			//sym = SYM_NULL;       // illegal?
+			sym = SYM_COLON;	//':' //zjr 12.8 //#Z2
 		}
 	}
 	else if (ch == '>')
@@ -1140,12 +1142,40 @@ void logi_or_expression(symset fsys)//----change by ywt,2017.10.25
 	destroyset(set);
 }//logi_or_expression
 
+//declare conditon() //zjr //12.8 #Z4
+void condition(symset fsys);
+
 void expression(symset fsys)
 {//nothing just to make sure we don't need to change the function name in other functions
 	symset set;
 
-	set = uniteset(fsys, createset(SYM_NULL));		//we can change it later
+	set = uniteset(fsys, createset(SYM_NULL,SYM_QUES));		//we can change it later //zjr 12.8 #Z4
 	logi_or_expression(set);			//ATTENTION, if you add something whose priority is larger than "||", change it!!
+	
+	//支持？ ： 表达式 zjr 12.8 //#Z4
+	if (sym==SYM_QUES)			//'?'
+	{    
+		getsym();						
+        int falsecx,s2endcx;    //记录出口地址
+        falsecx=cx;
+		gen(JLEZ,0,0);
+        symset set2=uniteset(fsys,createset(SYM_COLON,SYM_NULL));
+        expression(set2);        //在我们的代码中应该是condition_expr，因为我们这个代码的优先级错了
+        if (sym==SYM_COLON)		//':' 
+		{   
+			getsym();
+			s2endcx=cx;
+            gen(JMP,0,0);        //有待回填
+            code[falsecx].a=cx;        //回填第一条跳转的地址
+			expression(fsys);		   //此处应当是condition_expr
+            code[s2endcx].a=cx;        //回填那条JMP的跳转地址
+        }//if colon
+		else
+		{
+			error(40);
+		}
+    }//if ques
+
 	destroyset(set);
 } // expression
 //===================================================================================

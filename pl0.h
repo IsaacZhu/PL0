@@ -3,14 +3,14 @@
 #define NRW        19     // number of reserved words
 #define TXMAX      500    // length of identifier table
 #define MAXNUMLEN  14     // maximum number of digits in numbers
-#define NSYM       19     // maximum number of symbols in array ssym and csym
+#define NSYM       22     // maximum number of symbols in array ssym and csym //ZJR 12.8 #Z1
 #define MAXIDLEN   10     // length of identifiers
 
 #define MAXADDRESS 32767  // maximum address
 #define MAXLEVEL   32     // maximum depth of nesting block
 #define CXMAX      500    // size of code array
 
-#define MAXSYM     30     // maximum number of symbols  
+#define MAXSYM     60     // maximum number of symbols    //ZJR 12.8 #Z1  
 
 #define STACKSIZE  4096   // maximum storage
 
@@ -78,7 +78,11 @@ enum symtype
 	SYM_RANDOM,
 
 	//Dong Shi, 12.3, add SYM_INPUT
-	SYM_INPUT
+	SYM_INPUT,
+
+	//ZJR 12.8 ADD '?' AND ':',WHICH IS SYM_QUES AND SYM_COLON #Z1
+	SYM_QUES,
+	SYM_COLON 
 };
 
 //Add ID_POINTER //zjr 17.11.2 
@@ -170,7 +174,9 @@ char* err_msg[] =
 //Dong Shi, 12.3, Add error about input
 /* 38 */	"Input destination should be a variable.",
 //Dong Shi, 12.3, Add more error about ++/--
-/* 39 */	"Opreation increase or decrease must be operated on a variable."
+/* 39 */	"Opreation increase or decrease must be operated on a variable.",
+//zjr 12.8 incorrect ?: expression //#Z3
+/* 40 */    ": expected in ?: expression."
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -228,17 +234,21 @@ int wsym[NRW + 1] =
 	SYM_RANDOM, SYM_INPUT
 };
 
+//ADD SYM_QUES AND SYM_COLON //ZJR 12.8 //#Z1
 //符号代号集，与符号一一对应
 int ssym[NSYM + 1] =
 {
 	SYM_NULL, SYM_PLUS, SYM_MINUS, SYM_TIMES, SYM_SLASH,
-	SYM_LPAREN, SYM_RPAREN, SYM_EQU, SYM_COMMA, SYM_PERIOD, SYM_SEMICOLON,SYM_BITAND,SYM_BITOR,SYM_ANTI,SYM_LSBRAC,SYM_RSBRAC,SYM_BITXOR,SYM_MOD,SYM_LBRACE,SYM_RBRACE
+	SYM_LPAREN, SYM_RPAREN, SYM_EQU, SYM_COMMA, SYM_PERIOD, SYM_SEMICOLON,SYM_BITAND,SYM_BITOR,SYM_ANTI,SYM_LSBRAC,SYM_RSBRAC,
+	SYM_BITXOR,SYM_MOD,SYM_LBRACE,SYM_RBRACE,
+	SYM_QUES,SYM_COLON
 };
 
+//ADD '?' AND ':' //ZJR 12.8 #Z1
 //符号集
 char csym[NSYM + 1] =
 {
-	' ', '+', '-', '*', '/', '(', ')', '=', ',', '.', ';','&','|','!','[',']','^','%','{','}'
+	' ', '+', '-', '*', '/', '(', ')', '=', ',', '.', ';','&','|','!','[',']','^','%','{','}','?',':'
 };
 
 //汇编指令集
@@ -329,4 +339,6 @@ typedef struct
 int isarrayparam=0;//zjr 11.7 //#Z5
 int* nodeplist(char *name);
 int nodeparam(char *name);
+
+
 // EOF PL0.h
