@@ -1,0 +1,26 @@
+//test assignment
+//zjr 12.9
+var i,j,a[5][5];
+begin
+    i:=4;
+    j:=2;
+    a[2][2]:=3;
+    i*=j;
+    printf("@0\n",i);   //8 expected
+    j+=i;
+    printf("@0\n",j);   //10 expected
+    i+=j*=3;
+    printf("i:@0 j:@1\n",i,j); //38 30 expected
+    a[2][2]+=j;
+    printf("a[2][2]:@0\n",a[2][2]); //33 expected
+    a[1][1]:=5;
+    a[2][2]+=a[1][1]-=1;  
+    printf("a[1][1] :@0 a[2][2]:@1\n",a[1][1],a[2][2]); //4 37 expected
+
+    i:=8;
+    i>>=2;
+    printf("@0\n",i);   //2 expected
+    j:=10;
+    i<<=j>>=1;
+    printf("i:@0 j:@1\n",i,j); //64 5 expected            
+end.

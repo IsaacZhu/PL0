@@ -10,7 +10,7 @@
 #define MAXLEVEL   32     // maximum depth of nesting block
 #define CXMAX      500    // size of code array
 
-#define MAXSYM     60     // maximum number of symbols    //ZJR 12.8 #Z1  
+#define MAXSYM     67     // maximum number of symbols    //ZJR 12.8 #Z1  
 
 #define STACKSIZE  4096   // maximum storage
 
@@ -86,7 +86,19 @@ enum symtype
 
 	//ZJR 12.8 ADD '<<' AND '>>' //#Z5
 	SYM_LSHIFT,
-	SYM_RSHIFT 
+	SYM_RSHIFT,
+
+	//ZJR 12.8 ADD SEVERAL ASSIGNMENT OPERATORS //#Z11
+	SYM_MULAS,
+	SYM_DIVAS,
+	SYM_MODAS,
+	SYM_ADDAS,
+	SYM_SUBAS,
+	SYM_LAS,
+	SYM_RAS,
+	SYM_ANDAS,
+	SYM_XORAS,
+	SYM_ORAS 
 };
 
 //Add ID_POINTER //zjr 17.11.2 
@@ -105,9 +117,11 @@ enum idtype
 //delete PAS	//zjr 11.2
 //Dong Shi, 12.1, Add OUTS op
 //Dong Shi, 12.3, Add IN op
+//ZJR add LODST POP, and EXC 12.9 #Z15
 enum opcode
 {
-	LIT, OPR, LOD, STO, CAL, INT, JMP, JPC,JLEZ,JGZ,RET,APOP,ASTO,LODA,LEA, LODAR, STOAR, OUTS, IN
+	LIT, OPR, LOD, STO, CAL, INT, JMP, JPC,JLEZ,JGZ,RET,APOP,ASTO,LODA,LEA, LODAR, STOAR, OUTS, IN,
+	LODST,POP,EXC
 };
 
 //Dong Shi, 11.22, Add op OPR_INC and OPR_DEC
@@ -263,10 +277,12 @@ char csym[NSYM + 1] =
 //zjr , 11.2 ,Add APOP,ASTO,LODA. Delete PAS
 //Dong Shi, 12.1, Add OUTS
 //Dong Shi, 12.3, Add IN
-#define MAXINS   19
+//ZJR 12.9 ADD LODST AND POP AND EXC #Z15
+#define MAXINS   22
 char* mnemonic[MAXINS] =
 {
-	"LIT", "OPR", "LOD", "STO", "CAL", "INT", "JMP", "JPC","JLEZ","JGZ", "RET","APOP","ASTO","LODA", "LEA", "LODAR", "STOAR", "OUTS", "IN"
+	"LIT", "OPR", "LOD", "STO", "CAL", "INT", "JMP", "JPC","JLEZ","JGZ", "RET","APOP","ASTO","LODA", "LEA", "LODAR", "STOAR", "OUTS", "IN",
+	"LODST","POP","EXC"
 };
 
 typedef struct

@@ -114,6 +114,13 @@ void getsym(void)
 			getch();
 			return;
 		}
+		//added by zjr 12.9 #Z12
+		else if (ch == '=') //+=
+		{
+			sym=SYM_ADDAS;
+			getch();
+			return;
+		} 
 		else
 		{
 			sym = SYM_PLUS;
@@ -129,6 +136,13 @@ void getsym(void)
 			getch();
 			return;
 		}
+		//added by zjr 12.9 #Z12
+		else if (ch == '=') //-=
+		{
+			sym=SYM_SUBAS;
+			getch();
+			return;
+		} 
 		else
 		{
 			sym = SYM_MINUS;
@@ -215,8 +229,16 @@ void getsym(void)
 		//right shift op //added by zjr //12.8 #Z6 
 		else if (ch == '>')
 		{
-			sym=SYM_RSHIFT;
 			getch();
+			if (ch == '=')	//>>= right shift assign
+			{
+				sym=SYM_RAS;
+				getch();
+			}
+			else			//>> right shift
+			{
+				sym=SYM_RSHIFT;
+			}
 		}
 		else
 		{
@@ -236,11 +258,20 @@ void getsym(void)
 			sym = SYM_NEQ;     // <>
 			getch();
 		}
-		//left shift op //added by zjr //12.8 #Z6 
+		//left shift op //added by zjr //12.8 #Z6
+		//add '<<=' zjr 12.9 #Z12 
 		else if (ch == '<')
 		{
-			sym=SYM_LSHIFT;
 			getch();
+			if (ch == '=')	//<<= left shift assign
+			{
+				sym=SYM_LAS;
+				getch();
+			}
+			else			//<< left shift
+			{
+				sym=SYM_LSHIFT;
+			}
 		}
 		else
 		{
@@ -255,6 +286,12 @@ void getsym(void)
 			sym = SYM_AND;	  	//&&
 			getch();
 		}
+		//judge if it's &= AND ASSIGN  zjr 12.9 #Z12
+		else if (ch == '=') 
+		{
+			sym = SYM_ANDAS;
+			getch();
+		}
 		else
 		{
 			sym = SYM_BITAND;	//&
@@ -266,6 +303,12 @@ void getsym(void)
 		if (ch == '|')
 		{
 			sym = SYM_OR;		//||
+			getch();
+		}
+		//judge if it's |= OR ASSIGN zjr 12.9 #Z12
+		else if (ch == '=')
+		{
+			sym = SYM_ORAS;
 			getch();
 		}
 		else
@@ -289,13 +332,60 @@ void getsym(void)
 	else if (ch == '^')
 	{
 		getch();
-		sym = SYM_BITXOR;
+		// judge if it's ^= xor assign zjr 12.9 #Z12
+		if (ch == '=')	//^=
+		{
+			sym = SYM_XORAS;
+			getch();
+		}
+		else	// ^
+		{
+			sym = SYM_BITXOR;
+		}
 	}
 	else if (ch == '%')
 	{
 		getch();
-		sym = SYM_MOD;
+		//%= MOD ASSIGN  zjr 12.9 #Z12
+		if (ch == '=')	//%=
+		{
+			sym=SYM_MODAS;
+			getch();
+		}
+		else
+		{
+			sym=SYM_MOD;	//%
+		}
 	}
+
+	//judge if it's assignment op //zjr 12.9 #Z12
+	else if (ch == '*'){
+		getch();
+		if (ch == '=')	//*=
+		{
+			sym=SYM_MULAS;
+			getch();
+		}
+		else
+		{
+			sym=SYM_TIMES;	//*
+		}
+	}
+	else if (ch == '/'){
+		getch();
+		if (ch == '=')	// /=
+		{
+			sym=SYM_DIVAS;
+			getch();
+		}
+		else
+		{
+			sym=SYM_SLASH;	// /
+		}
+	}
+
+
+
 
 	else
 	{ // other tokens
@@ -1155,8 +1245,6 @@ void logi_or_expression(symset fsys)//----change by ywt,2017.10.25
 {//deal with logical "or"
 	symset set;
 	set = uniteset(fsys, createset(SYM_OR, SYM_NULL));
-	//mytest();//tc
-	//listcode(0,cx);//tc
 	logi_and_expression(set);
 	while (sym == SYM_OR)
 	{
@@ -1182,12 +1270,106 @@ void logi_or_expression(symset fsys)//----change by ywt,2017.10.25
 //declare conditon() //zjr //12.8 #Z4
 void condition(symset fsys);
 
+void condition_expression(symset fsys)
+{
+	logi_or_expression(fsys);
+}
+
+//judge assign op and generate "LOD/LODAR" and "OPR"
+//ZJR 12.9 #Z13
+void assign_op_judge(int assignop)
+{
+	switch(assignop)
+	{
+		case SYM_BECOMES:
+			break;
+		case SYM_MULAS:
+			gen(OPR,0,OPR_MUL);
+			break;
+		case SYM_DIVAS:
+			gen(EXC,0,0);
+			gen(OPR,0,OPR_DIV);
+			break;	
+		case SYM_MODAS:
+			gen(EXC,0,0);
+			gen(OPR,0,OPR_MOD);
+			break;
+		case SYM_ADDAS:
+			gen(OPR,0,OPR_ADD);
+			break;
+		case SYM_SUBAS:
+			gen(EXC,0,0);
+			gen(OPR,0,OPR_MIN);
+			break;
+		case SYM_LAS:
+			gen(EXC,0,0);
+			gen(OPR,0,OPR_LSH);
+			break;
+		case SYM_RAS:
+			gen(EXC,0,0);
+			gen(OPR,0,OPR_RSH);
+			break;
+		case SYM_ANDAS:
+			gen(OPR,0,OPR_BITAND);
+			break;
+		case SYM_XORAS:
+			gen(OPR,0,OPR_BITXOR);
+			break;
+		case SYM_ORAS:
+			gen(OPR,0,OPR_BITOR);
+			break;
+	}//switch
+}
+//a kind of assignment_expression that only support right value
+void assignment_expression(symset fsys)
+{
+	symset assignset,set;
+	int assignop,opcode,storeop,tmplevel,tmpaddr;
+	assignset=createset(SYM_BECOMES,SYM_MULAS,SYM_DIVAS,SYM_MODAS,SYM_ADDAS,SYM_SUBAS,SYM_LAS,SYM_RAS,SYM_ANDAS,SYM_XORAS,SYM_ORAS);
+	set = uniteset(fsys,assignset);
+	condition_expression(set);
+	while(inset(sym,assignset))
+	{
+		assignop=sym;
+		opcode=code[cx-1].f;
+		if (opcode == LOD)	//normal variable	
+		{
+			tmplevel=code[cx-1].l;
+			tmpaddr=code[cx-1].a;
+			cx--;			//delete this LOD
+			getsym();
+			assignment_expression(fsys); //analyse latter part
+			if (assignop!=SYM_BECOMES) gen(LOD,tmplevel,tmpaddr);	//lod variable for calculation
+			assign_op_judge(assignop);
+			gen(STO,tmplevel,tmpaddr);	//store it
+			gen(LOD,tmplevel,tmpaddr);	//lod it as return value of assignment expression
+		}
+		else if (opcode == LODAR)				//array factor
+		{
+			tmplevel=code[cx-1].l;
+			tmpaddr=code[cx-1].a;
+			cx--;			//delete this LODAR
+			getsym();
+			assignment_expression(fsys); //analyse latter part
+			if (assignop!=SYM_BECOMES) gen(LODST,0,0);	//lod it for calculation
+			assign_op_judge(assignop);	//gen OPR
+			gen(STOAR,0,0);	//store it
+		}
+		else
+		{
+			error(12);//illegal assignment
+		}
+	}//while
+	destroyset(set);
+}
+
 void expression(symset fsys)
 {//nothing just to make sure we don't need to change the function name in other functions
 	symset set;
 
 	set = uniteset(fsys, createset(SYM_NULL,SYM_QUES));		//we can change it later //zjr 12.8 #Z4
-	logi_or_expression(set);			//ATTENTION, if you add something whose priority is larger than "||", change it!!
+	//ZJR 12.9 #Z19
+	assignment_expression(set);			//ATTENTION, if you add something whose priority is larger than "||", change it!!
 	
 	//支持？ ： 表达式 zjr 12.8 //#Z4
 	if (sym==SYM_QUES)			//'?'
@@ -1375,6 +1557,12 @@ void statement(symset fsys)
 	//Dong Shi, 12.3, initial AssignStackTop
 	AssignStackTop = 0;
 
+	//ZJR 12.9 for assignment type judge #Z14
+	int assignop=0;
+	symset assignset=createset(SYM_BECOMES,SYM_MULAS,SYM_DIVAS,
+		SYM_MODAS,SYM_ADDAS,SYM_SUBAS,SYM_LAS,SYM_RAS,
+		SYM_ANDAS,SYM_XORAS,SYM_ORAS);
+
 	if (sym == SYM_IDENTIFIER)
 	{ // variable assignment
 		mask* mk;
@@ -1522,10 +1710,17 @@ void statement(symset fsys)
 			thisAddress = mk->address;
 		}
 
-		if (sym == SYM_BECOMES)
+		/*if (sym == SYM_BECOMES)
 		{
 			getsym();
-		}
+		}*/
+		//assignment op judge zjr 12.9 #Z14
+		if (inset(sym,assignset))
+		{
+			assignop=sym;
+			getsym();
+		} 
+
 		//Dong Shi, 11.23, Add var ++ and var --
 		//Dong Shi, 12.3, recode the implement of inc and dec
 		else if (sym == SYM_INC || sym == SYM_DEC)
@@ -1607,13 +1802,21 @@ void statement(symset fsys)
 		{
 			if (i)
 			{
+				//handle assignop  zjr 12.9 #Z14
+				if (assignop!=SYM_BECOMES) gen(LOD,level - mk->level, mk->address);
+				assign_op_judge(assignop);
 				gen(STO, level - mk->level, mk->address);
 			}
 		}
 		//add situation of ID_PARRAY //11.17 //zjr //#Z8
 		else if (table[i].kind == ID_ARRAY||table[i].kind == ID_PARRAY)
 		{
-			gen(STOAR, 0, 0);
+			//handle assignop  zjr 12.9 #Z14
+			if (assignop!=SYM_BECOMES) gen(LODST,0,0);	//lod factor
+			assign_op_judge(assignop);		//calculate
+
+			gen(STOAR, 0, 0);			//sto
+			gen(POP,0,0);				//pop the result
 			/* a instuction of storing to be added ***************************************/
 		}
 	}//ID_VARIABLE
@@ -2586,12 +2789,19 @@ void interpret()
 		case LODAR:
 			top ++;
 			stack[top] = stack[stack[top - 1]];
+			//zjr 12.9 
+			stack[top-1]=stack[top];
+			top--;
+
+			//printf("ttt:%d\n",stack[top]);//tc
 			break;
 		case STOAR:
+			//ZJR 12.9 don't pop value of this array factor #Z17
 			stack[stack[top - 1]] = stack[top];
+			stack[top-1]=stack[top];
+			--top;
 			//Dong Shi, 12.1, disable STOAR output			
 			//printf("%d\n", stack[top]);
-			top = top - 2;
 			break;
 		case OUTS:
 			id = i.a;
@@ -2613,6 +2823,23 @@ void interpret()
 		case IN:
 			++ top;
 			scanf("%d", &stack[top]);
+			break;
+		//用次栈顶作为地址，取出一个值放到栈顶 ZJR 12.9 #Z16
+		case LODST:
+			++top;
+			stack[top]=stack[stack[top-2]];
+			break;
+		//POP STACK TOP ZJR 12.9 #Z16
+		case POP:
+			stack[top]=0;
+			--top;
+			break;
+		//交换栈顶和次栈顶 ZJR 12.9 #Z16
+		case EXC:
+			stack[top+1]=stack[top];
+			stack[top]=stack[top-1];
+			stack[top-1]=stack[top+1];
+			stack[top+1]=0;
 			break;
 		} // switch
 	}
