@@ -1,0 +1,10 @@
+//test << and >> operator
+var i,j;
+begin
+    i:=2; 
+    j:=1;
+    j:=j<<i;
+    printf("@0\n",j); //4 expected
+    j:=j<<3>>1;
+    printf("@0\n",j); //16 expected
+end.

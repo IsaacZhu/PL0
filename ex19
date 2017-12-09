@@ -1,0 +1,15 @@
+//test ? : expression
+//zjr 12.8
+var i,j;
+begin
+    j:=5;
+    i:=j==5?1:0;
+    printf("@0\n",i);       //1 expected
+    i:=j==5?4>3?8:7:0;
+    printf("@0\n",i);       //8 expected
+    if j==5?1:0 then 
+    //{
+        i:=4;
+    //};
+    //printf("@0\n",i);       //4 expected
+end.
