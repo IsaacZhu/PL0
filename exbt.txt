@@ -1,0 +1,15 @@
+var result, a[2][3][4];
+procedure fact(n);
+begin
+	callstack;
+	if n<2 then return 1;
+	else return fact(-1+n)*n;
+end;
+procedure factroot(a[2][3][4]);
+begin
+	return fact(a[0][1][1]);
+end;
+begin
+	a[0][1][1] := 5;
+	result:=factroot(a);
+end.
