@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#define NRW        19     // number of reserved words
+#define NRW        20     // number of reserved words
 #define TXMAX      500    // length of identifier table
 #define MAXNUMLEN  14     // maximum number of digits in numbers
 #define NSYM       22     // maximum number of symbols in array ssym and csym //ZJR 12.8 #Z1
@@ -98,7 +98,10 @@ enum symtype
 	SYM_RAS,
 	SYM_ANDAS,
 	SYM_XORAS,
-	SYM_ORAS 
+	SYM_ORAS, 
+
+	//LJQ 12.9 ADD CALST for callstack
+	SYM_CALST
 };
 
 //Add ID_POINTER //zjr 17.11.2 
@@ -121,7 +124,7 @@ enum idtype
 enum opcode
 {
 	LIT, OPR, LOD, STO, CAL, INT, JMP, JPC,JLEZ,JGZ,RET,APOP,ASTO,LODA,LEA, LODAR, STOAR, OUTS, IN,
-	LODST,POP,EXC
+	LODST,POP,EXC, CALST
 };
 
 //Dong Shi, 11.22, Add op OPR_INC and OPR_DEC
@@ -240,7 +243,8 @@ char* word[NRW + 1] =
 {
 	"", /* place holder */
 	"begin", "call", "const", "do", "end","if",
-	"odd", "procedure", "then", "var", "while","else","else if","exit","return","for", "printf", "random", "input"
+	"odd", "procedure", "then", "var", "while","else","else if","exit","return","for", "printf", "random", "input", 
+	"callstack"
 };
 
 //关键字代号集，与关键字一一对应
@@ -252,7 +256,7 @@ int wsym[NRW + 1] =
 	SYM_NULL, SYM_BEGIN, SYM_CALL, SYM_CONST, SYM_DO, SYM_END,
 	SYM_IF, SYM_ODD, SYM_PROCEDURE, SYM_THEN, SYM_VAR, SYM_WHILE,
 	SYM_ELSE,SYM_ELSE_IF,SYM_EXIT,SYM_RETURN,SYM_FOR, SYM_PRINTF,
-	SYM_RANDOM, SYM_INPUT
+	SYM_RANDOM, SYM_INPUT, SYM_CALST
 };
 
 //ADD SYM_QUES AND SYM_COLON //ZJR 12.8 //#Z1
@@ -278,11 +282,11 @@ char csym[NSYM + 1] =
 //Dong Shi, 12.1, Add OUTS
 //Dong Shi, 12.3, Add IN
 //ZJR 12.9 ADD LODST AND POP AND EXC #Z15
-#define MAXINS   22
+#define MAXINS   23
 char* mnemonic[MAXINS] =
 {
 	"LIT", "OPR", "LOD", "STO", "CAL", "INT", "JMP", "JPC","JLEZ","JGZ", "RET","APOP","ASTO","LODA", "LEA", "LODAR", "STOAR", "OUTS", "IN",
-	"LODST","POP","EXC"
+	"LODST","POP","EXC", "CALST"
 };
 
 typedef struct
@@ -316,6 +320,10 @@ typedef struct stnode
 	int localtx;
 	char funcname[100];
 	int paralist[50];
+	//ljq added 12.10 for callstack
+	int address;
+	char paraname[10][100];
+	int paranum;
 }stnode;
 
 stnode stlist;
@@ -326,6 +334,14 @@ char funcname[200];	//record funcname  //added by zjr 17.10.27
 //char tmpparam[50][50];  //record name of parameters temporarily //added by zjr 17.10.27
 comtab tmpparam[50];	//record name of parameters temporarily //modified by zjr 11.17
 int tmptx=0;		//added by zjr 17.10.28
+
+/*added by ljq 17.12.10 for callstack
+char paranameset[1000][100];
+int currparanum = 0;
+//===========for callstack*/
+char tmpparaname[10][100];
+int tmpparanum;
+char numstring[10];
 
 int cx6[5][10],cx7[5][10];
 int sign_and[5]={0,0,0,0,0};
@@ -362,6 +378,5 @@ typedef struct
 int isarrayparam=0;//zjr 11.7 //#Z5
 int* nodeplist(char *name);
 int nodeparam(char *name);
-
 
 // EOF PL0.h

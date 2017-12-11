@@ -29,6 +29,27 @@ void error(int n)
 } // error
 
 //////////////////////////////////////////////////////////////////////
+//convert number to string for callstack
+void ntos(int num)
+{
+	int bit[10], i = 0, length;
+	memset(bit, 10, 0);
+	memset(numstring, 10, 0);
+	while(num)
+	{
+		bit[i] = num % 10;
+		num = num / 10;
+		i ++;
+	}
+	length = i;
+	while(i)
+	{
+		numstring[length - i] = '0' + bit[i - 1];
+		i --;
+	}
+}//ntos
+
+//////////////////////////////////////////////////////////////////////
 void getch(void)
 {
 	if (cc == ll)
@@ -732,7 +753,7 @@ void factor(symset fsys)
 						
 						if (sym != SYM_RPAREN)			//call pro()
 						{ 
-							symset s1;
+							symset s1 = NULL;		//error fixed when finishing callstack
 							while (sym != SYM_RPAREN)	//not ")"
 							{
 								if (sym == SYM_COMMA)	
@@ -1419,8 +1440,8 @@ void condition(symset fsys)//---change by ywt,2017.10.25
 	// else
 	{
 		//set = uniteset(relset, fsys);
-		//set=uniteset(createset(SYM_NULL),fsys);//zjr 11.27
-		memcpy(&set,&fsys,1*sizeof(symset));//zjr 11.27
+		set=uniteset(createset(SYM_NULL),fsys);//zjr 11.27
+		//memcpy(&set,&fsys,1*sizeof(symset));//zjr 11.27
 		expression(set);
 		//destroyset(set);
 		if (! inset(sym, relset))
@@ -1771,14 +1792,17 @@ void statement(symset fsys)
 							++ AssignStackTop;
 							AssignStackLeft[2*AssignStackTop] = level - tmpMask->level;
 							AssignStackLeft[2*AssignStackTop+1] = tmpMask->address;
+							getsym();
 						}
 						else
 						{
 							error(12);
 						}
-					}
-				}
-			}
+					}//else
+				}//if SYM_IDENTIFIER
+			}//while
+			if(sym == SYM_BECOMES)
+				getsym();
 		}
 		else
 		{
@@ -2091,6 +2115,12 @@ void statement(symset fsys)
 		getsym(); //')'
 		getsym();
 	}
+	//lijiquan, 12.9, Add callstack
+	else if (sym == SYM_CALST)
+	{
+		gen(CALST, 0, 0);
+		getsym();
+	}
 	//Dong Shi, 12.3, make it possible let a factor be a statement
 	else
 	{
@@ -2109,6 +2139,8 @@ void initchainlist()
 	stlist.stable=(comtab *)calloc(TXMAX,sizeof(comtab));
 	stlist.localtx=0;
 	strcpy(stlist.funcname,"\0");	//zjr 11.20
+	//ljq 12.10 for callstack
+	stlist.address = 0;
 } 
 
 //enter parameters to symbol table
@@ -2222,6 +2254,12 @@ void nodeinsert()
 	P->funcparam=funcparam;
 	P->localtx=tx;		//need more consideration
 	strcpy(P->funcname,funcname);
+	//ljq for callstack
+	for(i = 0; i < tmpparanum; i ++)
+	{
+		strcpy(P->paraname[i], tmpparaname[i]);
+	}
+	P->paranum = tmpparanum;
 	
 	//add paralist to new node	//zjr 11.17 	//#Z13
 	paralist=P->paralist;
@@ -2385,6 +2423,7 @@ void block(symset fsys)
 			{
 				memset(tmpparam,0,50*sizeof(comtab));
 				funcparam=0;
+				tmpparanum = 0;	//ljq add for callstack
 				getsym();
 				if (sym != SYM_RPAREN)
 				{ 
@@ -2402,6 +2441,7 @@ void block(symset fsys)
 							
 								arr = (array *) &tmpparam[funcparam];
 								strcpy(tmpparam[funcparam].name, id);
+								strcpy(tmpparaname[tmpparanum], id); //ljq 12.10 for callstack
 								arr->kind=ID_ARRAY;	//head
 								arr->level = level;
 								//arress need to be backpatch
@@ -2412,6 +2452,7 @@ void block(symset fsys)
 								dhead->depth = 0;
 								do	//width of every dimension
 								{
+									strcat(tmpparaname[tmpparanum], "[");	//ljq 12.10 for callstack
 									dhead->depth ++;
 									getsym();
 									if (sym == SYM_NUMBER)
@@ -2422,6 +2463,8 @@ void block(symset fsys)
 										pdim = (dimension*) &tmpparam[funcparam];
 										pdim->width = num;
 										arraySize = arraySize * num;
+										ntos(num);		//ljq 12.11 for callstack
+										strcat(tmpparaname[tmpparanum], numstring);	//ljq 12.11 for callstack
 										getsym();
 									}
 									else
@@ -2430,6 +2473,7 @@ void block(symset fsys)
 									}
 									if (sym == SYM_RSBRAC)
 									{
+										strcat(tmpparaname[tmpparanum], "]");	//ljq 12.10 for callstack
 										getsym();
 									}
 									else
@@ -2439,10 +2483,13 @@ void block(symset fsys)
 								}
 								while(sym == SYM_LSBRAC);
 								++funcparam;
+								++tmpparanum;	//ljq 12.10 for callstack
 							}//if lsbrac
 							else
 							{
 								strcpy(tmpparam[funcparam].name,id);
+								strcpy(tmpparaname[tmpparanum], id);	//ljq 12.10 for callstack
+								++tmpparanum;	//ljq 12.10 for callstack
 								tmpparam[funcparam].kind=ID_VARIABLE;
 								++funcparam;
 								//getsym();	//next sym
@@ -2543,6 +2590,7 @@ void block(symset fsys)
 		mk->level=level;
 	}
 	
+	Func-> address = cx;		//ljq 17.12.10 for callstack
 	gen(INT, 0, block_dx);
 	//gen instructions to load arguments //zjr 17.11.2
 	int i;
@@ -2597,6 +2645,12 @@ void interpret()
 	int id;
 	char outsChar;
 	int length;
+
+
+	int calldepth = 0;				//added by ljq for callstack
+	int uppc, upbp, j;
+	int npara = 0, paraseq;
+	stnode *upfunc;
 
 	printf("Begin executing PL/0 program.\n");
 
@@ -2845,6 +2899,38 @@ void interpret()
 			stack[top]=stack[top-1];
 			stack[top-1]=stack[top+1];
 			stack[top+1]=0;
+			break;
+		//callstack by ljq 12.10
+		case CALST:
+			calldepth = 0;
+			uppc = pc;			//used to go up the stack
+			upbp = b;
+			calldepth ++;
+			do
+			{
+				upfunc = (stnode *)&stlist;
+				while(code[uppc].f != INT)
+					uppc --;
+				while(upfunc->address != uppc)
+					upfunc = upfunc->next;
+				npara = upfunc->paranum;
+				printf("#%d %s (", calldepth, upfunc->funcname);
+				for(paraseq = 0; paraseq < npara; paraseq ++)
+				{
+					printf("%s = %d", upfunc->paraname[paraseq], stack[upbp - npara + paraseq]);
+					if(paraseq != npara - 1)
+						printf(", ");
+				}
+				printf(")\n");
+				calldepth ++;
+				uppc = stack[upbp + 2];
+				upbp = stack[upbp + 1];
+				if(uppc == 0)
+				{
+					uppc = code[0].a;
+				}
+			} while (strcmp(upfunc->funcname, "main") != 0);
+			printf("\n");
 			break;
 		} // switch
 	}
