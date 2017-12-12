@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#define NRW        20     // number of reserved words
+#define NRW        24   // number of reserved words
 #define TXMAX      500    // length of identifier table
 #define MAXNUMLEN  14     // maximum number of digits in numbers
 #define NSYM       22     // maximum number of symbols in array ssym and csym //ZJR 12.8 #Z1
@@ -10,7 +10,7 @@
 #define MAXLEVEL   32     // maximum depth of nesting block
 #define CXMAX      500    // size of code array
 
-#define MAXSYM     67     // maximum number of symbols    //ZJR 12.8 #Z1  
+#define MAXSYM     71     // maximum number of symbols    //ZJR 12.8 #Z1  
 
 #define STACKSIZE  4096   // maximum storage
 
@@ -101,7 +101,12 @@ enum symtype
 	SYM_ORAS, 
 
 	//LJQ 12.9 ADD CALST for callstack
-	SYM_CALST
+	SYM_CALST,
+	//YWT 12.10 ADD 'switch' , 'case','break',default
+	SYM_SWITCH,
+	SYM_CASE,
+	SYM_BREAK,
+	SYM_DEFAULT
 };
 
 //Add ID_POINTER //zjr 17.11.2 
@@ -124,7 +129,7 @@ enum idtype
 enum opcode
 {
 	LIT, OPR, LOD, STO, CAL, INT, JMP, JPC,JLEZ,JGZ,RET,APOP,ASTO,LODA,LEA, LODAR, STOAR, OUTS, IN,
-	LODST,POP,EXC, CALST
+	LODST,POP,EXC, CALST, CMP, SWIT
 };
 
 //Dong Shi, 11.22, Add op OPR_INC and OPR_DEC
@@ -216,6 +221,20 @@ int  cx;         // index of current instruction to be generated.
 int  level = 0;
 int  tx = 0;
 int dx;		//modified by zjr //11.7
+instruction switchcode[10][20];
+int defaultlist[10];
+int rcx[10]={0,0,0,0,0,0,0,0,0,0};
+int jcx[10];
+int bcx[10];
+int mcx[10];
+int ecx[10];
+int switch_re[10];
+int case_cx[10][10];
+int case_num[10][10];
+int breaklist[10][10];
+int breaknum[10]={-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+int casenum[10]={-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+int deep=-1;//add by ywt 
 
 char line[512];	//zjr 11.27
 
@@ -244,7 +263,7 @@ char* word[NRW + 1] =
 	"", /* place holder */
 	"begin", "call", "const", "do", "end","if",
 	"odd", "procedure", "then", "var", "while","else","else if","exit","return","for", "printf", "random", "input", 
-	"callstack"
+	"callstack","switch","case","break","default"
 };
 
 //关键字代号集，与关键字一一对应
@@ -256,7 +275,7 @@ int wsym[NRW + 1] =
 	SYM_NULL, SYM_BEGIN, SYM_CALL, SYM_CONST, SYM_DO, SYM_END,
 	SYM_IF, SYM_ODD, SYM_PROCEDURE, SYM_THEN, SYM_VAR, SYM_WHILE,
 	SYM_ELSE,SYM_ELSE_IF,SYM_EXIT,SYM_RETURN,SYM_FOR, SYM_PRINTF,
-	SYM_RANDOM, SYM_INPUT, SYM_CALST
+	SYM_RANDOM, SYM_INPUT, SYM_CALST,SYM_SWITCH,SYM_CASE,SYM_BREAK,SYM_DEFAULT
 };
 
 //ADD SYM_QUES AND SYM_COLON //ZJR 12.8 //#Z1
@@ -282,11 +301,11 @@ char csym[NSYM + 1] =
 //Dong Shi, 12.1, Add OUTS
 //Dong Shi, 12.3, Add IN
 //ZJR 12.9 ADD LODST AND POP AND EXC #Z15
-#define MAXINS   23
+#define MAXINS   25
 char* mnemonic[MAXINS] =
 {
 	"LIT", "OPR", "LOD", "STO", "CAL", "INT", "JMP", "JPC","JLEZ","JGZ", "RET","APOP","ASTO","LODA", "LEA", "LODAR", "STOAR", "OUTS", "IN",
-	"LODST","POP","EXC", "CALST"
+	"LODST","POP","EXC", "CALST","CMP","SWIT"
 };
 
 typedef struct

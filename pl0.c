@@ -2121,6 +2121,119 @@ void statement(symset fsys)
 		gen(CALST, 0, 0);
 		getsym();
 	}
+	//YWT,12.10,add SYM_SWITCH,sym_break,sym_case,SYM_DEFAULT
+	else if(sym==SYM_SWITCH)
+	{
+		deep++;
+		getsym();//'('
+		if(sym==SYM_LPAREN)
+		  getsym();
+		else
+		  error(35);
+		jcx[deep]=cx;
+		gen(JMP,0,0);
+		bcx[deep]=cx;
+		set1 = createset(SYM_RPAREN, SYM_NULL);
+		set = uniteset(set1, fsys);
+		expression(set1);
+		destroyset(set1);
+		destroyset(set);
+		mcx[deep]=cx-1;
+		getsym();//')'
+		statement(fsys);
+		ecx[deep]=cx-1;
+		cx4=bcx[deep];
+		for(i=0;cx4<=mcx[deep];cx4++)
+		{
+			switchcode[deep][i]=code[cx4];
+			i++;
+		}
+		cx4=bcx[deep];
+		for(i=mcx[deep]+1;i<=ecx[deep];i++)
+		{
+			code[cx4]=code[i];
+			if(code[cx4].f==JMP||code[cx4].f==JGZ||code[cx4].f==JLEZ)
+			code[cx4].a-=mcx[deep]-bcx[deep]+1;
+			cx4++;
+		}
+		rcx[deep]=ecx[deep]-mcx[deep]+bcx[deep];
+		code[rcx[deep]].f=JMP;
+		code[rcx[deep]].l=0;
+		code[rcx[deep]].a=0;
+        cx++;//因为新增了一条jump指令，而没用gen，所以cx++
+		cx4=ecx[deep]-mcx[deep]+bcx[deep]+1;
+		code[jcx[deep]].a=cx4;
+		for(i=0;cx4<=ecx[deep]+1;cx4++)
+		{
+			code[cx4]=switchcode[deep][i];
+			i++;
+		}
+		gen(SWIT,0,0);
+		if(casenum[deep]>=0)//case地址变换
+		{
+			for(i=0;i<=casenum[deep];i++)
+			{
+				case_cx[deep][i]=case_cx[deep][i]-mcx[deep]+bcx[deep]-1;
+			}
+		}
+		for(i=0;i<=casenum[deep];i++)//对case部分跳转判断增加指令
+		{
+			gen(CMP,0,case_num[deep][i]);
+			gen(JLEZ,0,case_cx[deep][i]);
+		}
+		casenum[deep]=-1;
+		if(defaultlist[deep])
+		{
+			defaultlist[deep]-=mcx[deep]-bcx[deep]+1;
+			gen(JMP,0,defaultlist[deep]);
+		}
+		defaultlist[deep]=0;
+		if(breaknum[deep]>=0)//break地址变换
+		{
+			for(i=0;i<=breaknum[deep];i++)
+			{
+				breaklist[deep][i]=breaklist[deep][i]-mcx[deep]+bcx[deep]-1;
+			}
+		}
+		for(;breaknum[deep]>=0;breaknum[deep]--)//回填break地址
+		code[breaklist[deep][breaknum[deep]]].a=cx;
+		code[rcx[deep]].a=cx;
+		deep--;
+	}
+	else if(sym==SYM_CASE)
+	{
+		casenum[deep]++;
+		getsym();
+		case_num[deep][casenum[deep]]=num;
+		getsym();
+		if(sym==SYM_COLON)	
+		{
+		  getsym();
+		}
+		else
+		  error(0);	
+		case_cx[deep][casenum[deep]]=cx;
+		statement(fsys);
+	}
+	else if(sym==SYM_DEFAULT)
+	{
+		getsym();//':'
+		if(sym==SYM_COLON)	
+		{
+		  getsym();
+		}
+		else
+		  error(0);	
+		defaultlist[deep]=cx;
+		statement(fsys);
+	}
+	else if(sym==SYM_BREAK)
+	{
+		breaknum[deep]++;
+		breaklist[deep][breaknum[deep]]=cx;
+		gen(JMP,0,0);
+		getsym();
+	}
 	//Dong Shi, 12.3, make it possible let a factor be a statement
 	else
 	{
@@ -2899,6 +3012,13 @@ void interpret()
 			stack[top]=stack[top-1];
 			stack[top-1]=stack[top+1];
 			stack[top+1]=0;
+			break;
+		//CMP和SWIT用于switch YWT 12.12
+		case CMP:
+		    stack[top]=switch_re[deep]-i.a;
+			break;
+		case SWIT:
+		    switch_re[deep]=stack[top];
 			break;
 		//callstack by ljq 12.10
 		case CALST:
