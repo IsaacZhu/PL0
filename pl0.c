@@ -2153,6 +2153,7 @@ void statement(symset fsys)
 		{
 			code[cx4]=code[i];
 			if(code[cx4].f==JMP||code[cx4].f==JGZ||code[cx4].f==JLEZ)
+			if(code[cx4].a>=bcx[deep]&&code[cx4].a<=ecx[deep])
 			code[cx4].a-=mcx[deep]-bcx[deep]+1;
 			cx4++;
 		}
