@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#define NRW        24   // number of reserved words
+#define NRW        25   // number of reserved words
 #define TXMAX      500    // length of identifier table
 #define MAXNUMLEN  14     // maximum number of digits in numbers
 #define NSYM       22     // maximum number of symbols in array ssym and csym //ZJR 12.8 #Z1
@@ -106,15 +106,21 @@ enum symtype
 	SYM_SWITCH,
 	SYM_CASE,
 	SYM_BREAK,
-	SYM_DEFAULT
+	SYM_DEFAULT,
+
+	//Dong Shi, 12.12, Add SYM LIST and SYM_LLBRC, SYM_LRBRC
+	SYM_LIST,
+	SYM_LLBRC,
+	SYM_LRBRC
 };
 
 //Add ID_POINTER //zjr 17.11.2 
 //Add array //ljq
 //Add ID_PARRAY for array arguments passing //zjr //11.7 //#Z4
+//Dong Shi, 12.12, Add ID_LIST
 enum idtype
 {
-	ID_CONSTANT, ID_VARIABLE, ID_PROCEDURE, ID_POINTER, ID_ARRAY,ID_PARRAY
+	ID_CONSTANT, ID_VARIABLE, ID_PROCEDURE, ID_POINTER, ID_ARRAY,ID_PARRAY, ID_LIST
 };
 
 //add PAS: for parameter pass //modified by zjr 17.10.27
@@ -258,24 +264,27 @@ int funcparam=0;
 //Dong Shi, 12.1, Add printf
 //Dong Shi, 12.1, Add random
 //Dong Shi, 12.3, Add input
+//Dong Shi, 12.12, Add typename list
 char* word[NRW + 1] =
 {
 	"", /* place holder */
 	"begin", "call", "const", "do", "end","if",
 	"odd", "procedure", "then", "var", "while","else","else if","exit","return","for", "printf", "random", "input", 
-	"callstack","switch","case","break","default"
+	"callstack","switch","case","break","default", "list"
 };
 
 //关键字代号集，与关键字一一对应
 //Dong Shi, 12.1, Add SYM_PRINTF
 //Dong Shi, 12.1, Add SYM_RANDOM
 //Dong Shi, 12.3, Add SYM_INPUT
+//Dong Shi, 12.12, Add SYTM_LIST
 int wsym[NRW + 1] =
 {
 	SYM_NULL, SYM_BEGIN, SYM_CALL, SYM_CONST, SYM_DO, SYM_END,
 	SYM_IF, SYM_ODD, SYM_PROCEDURE, SYM_THEN, SYM_VAR, SYM_WHILE,
 	SYM_ELSE,SYM_ELSE_IF,SYM_EXIT,SYM_RETURN,SYM_FOR, SYM_PRINTF,
-	SYM_RANDOM, SYM_INPUT, SYM_CALST,SYM_SWITCH,SYM_CASE,SYM_BREAK,SYM_DEFAULT
+	SYM_RANDOM, SYM_INPUT, SYM_CALST,SYM_SWITCH,SYM_CASE,SYM_BREAK,SYM_DEFAULT,
+	SYM_LIST
 };
 
 //ADD SYM_QUES AND SYM_COLON //ZJR 12.8 //#Z1
@@ -397,5 +406,31 @@ typedef struct
 int isarrayparam=0;//zjr 11.7 //#Z5
 int* nodeplist(char *name);
 int nodeparam(char *name);
+
+
+//Dong Shi, 12.12, add list storge structs
+struct list{
+	int type;	//0 for normal, 1 for lazy list
+	int lazyDescription[4];
+	//[0]: 0 for have ending, 1 for no;
+	//[1]: first element
+	//[2]: second element
+	//[3]: ending element
+	struct listNode* root;
+	int size;
+	//size of list
+};
+
+struct listNode{
+	struct listNode *next;
+	int type;	//0 for num, 1 for var, 2 for array
+	int value;	//for num value or address of var or address of head of array
+	int level; 	//for var level
+	int dim[34];//record for dim(levels) of array, [0] for levels, [33] is for i
+};
+
+struct list listTable[128];
+int listTableSize = 0; 
+
 
 // EOF PL0.h

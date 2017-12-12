@@ -189,6 +189,37 @@ void getsym(void)
 		getch();
 		return;
 	}
+	// DongShi, 12.12, Add [[ and ]]
+	else if (ch == '[')
+	{
+		getch();
+		if (ch == '[')
+		{
+			sym = SYM_LLBRC;
+			getch();
+			return;
+		}
+		else
+		{
+			sym = SYM_LSBRAC;
+			return;
+		}
+	}
+	else if (ch == ']')
+	{
+		getch();
+		if (ch == ']')
+		{
+			sym = SYM_LRBRC;
+			getch();
+			return;
+		}
+		else
+		{
+			sym = SYM_RSBRAC;
+			return;
+		}
+	}
 	ch = lastChar;
 
 	if (isalpha(ch))
@@ -1507,7 +1538,7 @@ void formatTranslate(){
 	int length = tmpStack[0];
 	int i;
 	int count = 0;
-	char current, next, id;
+	char current, next, ididid;
 
 	for(i = 1; i <= length; ++ i){
         current = tmpStack[i];
@@ -1557,9 +1588,9 @@ void formatTranslate(){
 			break;
 			case '@':
 			++ i;
-			id = '0' - tmpStack[i];
+			ididid = '0' - tmpStack[i];
 			++ count;
-			IOStack[IOStackNum][count] = id-1;
+			IOStack[IOStackNum][count] = ididid-1;
             break;
             default:
             ++ count;
@@ -2235,6 +2266,25 @@ void statement(symset fsys)
 		gen(JMP,0,0);
 		getsym();
 	}
+	//Dong Shi, 12.12, Add List
+	else if (sym == SYM_LLBRC)
+	{
+		int thisList = makeList(fsys);
+		
+		AssignStackTop = 0;
+		AssignStackLeft[AssignStackTop] = thisList;
+		++ AssignStackTop;
+
+		while (sym == SYM_BECOMES)
+		{
+			getsym();//should be [[
+			thisList = makeList(fsys);
+			AssignStackLeft[AssignStackTop] = thisList;
+			++ AssignStackTop;
+		}
+		
+		genListChainAssign();
+	}
 	//Dong Shi, 12.3, make it possible let a factor be a statement
 	else
 	{
@@ -2243,6 +2293,253 @@ void statement(symset fsys)
 	}
 	//test(fsys, phi, 19);
 } // statement
+
+//Dong Shi, 12.12, Add function to process the list
+int makeList(symset fsys)
+{
+	int listLength = 0;
+	struct listNode* nn = NULL;
+	struct listNode** cn;
+	int i;
+	mask* mk;
+	int arrayLevel;
+	int thisList;
+	int flag;
+
+	if (sym == SYM_LLBRC)
+	{
+		thisList = listTableSize;
+		++ listTableSize;
+		
+		getsym();
+		
+		if (sym == SYM_LRBRC)
+		{//empty list
+			listTable[thisList].type = 0;
+			listTable[thisList].root = NULL;
+			listTable[thisList].size = 0;
+			return thisList;
+		}
+		
+		cn = &(listTable[thisList].root);
+
+		while(sym == SYM_IDENTIFIER || sym == SYM_NUMBER)
+		{
+			//make node
+			++ listLength;
+			nn = (struct listNode*)malloc(sizeof(struct listNode));
+			flag = 0;
+			if (sym == SYM_IDENTIFIER)
+			{
+				if ((i = position(id)) == 0)
+				{
+					error(11); // Undeclared identifier.
+				}
+				else
+				{
+					switch (table[i].kind)
+					{
+						case ID_CONSTANT: 
+							nn->type = 0;
+							nn->value = table[i].value;
+							getsym();
+							break;
+						case ID_VARIABLE:
+							mk = (mask*) &table[i];
+							nn->type = 1;
+							nn->value = mk->address;
+							nn->level = level - mk->level;
+							getsym();
+							break;
+						case ID_ARRAY:
+							arrayLevel = 0;
+							mk = (mask*) &table[i];
+							nn->type = 2;
+							nn->value = mk->address;
+							nn->level = level - mk->level;
+							getsym();
+							while(sym == SYM_LSBRAC)
+							{
+								getsym();
+								if(sym == SYM_IDENTIFIER)
+								{
+									if (table[i].kind == ID_CONSTANT)
+									{
+										++ arrayLevel;
+										nn->dim[arrayLevel] = table[i].value;
+									}
+								}else if(sym == SYM_NUMBER)
+								{
+									++ arrayLevel;
+									nn->dim[arrayLevel] = num;
+								}
+								getsym(); //']'
+								getsym(); 
+							}
+							nn->dim[0] = arrayLevel;
+							nn->dim[33] = i;
+							break;
+					}
+					if (sym == SYM_LRBRC) flag = 1;
+					getsym();
+				}
+			}
+			else if (sym == SYM_NUMBER)
+			{
+				nn->type = 0;
+				nn->value = num;
+				getsym();
+				if (sym == SYM_LRBRC) flag = 1;
+				getsym();
+			}
+
+			(*cn) = nn;
+			cn = &(nn->next);
+			*cn = NULL;
+
+			if(flag == 1)break;
+		}
+
+		listTable[thisList].size = listLength;
+	}
+
+	return thisList;
+}
+
+//Dong Shi, 12.12, Add list assign code generate
+void genListChainAssign()
+{
+	int leftList;
+	int rightList;
+	void genListAssign(int left, int right);
+
+	while(AssignStackTop != 1)
+	{
+		-- AssignStackTop;
+		rightList = AssignStackLeft[AssignStackTop];
+		leftList = AssignStackLeft[AssignStackTop-1];
+		genListAssign(leftList, rightList);
+	}
+}
+
+//Dong Shi, 12.12, Add two list assign code generate
+void genListAssign(int left, int right)
+{
+	struct listNode* leftNode, *rightNode;
+	int listSize;
+	int iii;
+	dimensionHead* dhead;
+	dimension* dim;
+	int maxdim;
+	int itr;
+
+	leftNode = listTable[left].root;
+	rightNode = listTable[right].root;
+
+	listSize = listTable[left].size;
+
+	while(listSize > 0)
+	{
+		if(leftNode->type != 2)
+		{
+			switch(rightNode->type)
+			{
+				case 0: gen(LIT, 0, rightNode->value); break;
+				case 1: gen(LOD, rightNode->level, rightNode->value); break;
+				case 2: 
+					iii = rightNode->dim[33];
+					maxdim = rightNode->dim[0];
+
+					gen(LEA, rightNode->level, rightNode->value);
+					iii ++;
+					dhead = (dimensionHead*) &table[iii];
+					iii ++;
+
+					gen(LIT, 0, rightNode->dim[1]);
+
+					for(itr = 2; itr <= maxdim; ++ itr)
+					{
+						iii ++;
+						dim = (dimension*) &table[iii];
+						gen(LIT, 0, dim->width);
+						gen(OPR, 0, OPR_MUL);
+						gen(LIT, 0, rightNode->dim[itr]);
+						gen(OPR, 0, OPR_ADD);
+					}
+
+					gen(OPR, 0, OPR_ADD);
+					
+					gen(LODAR, 0, 0);
+					break;
+			};
+		}
+
+		switch(leftNode->type){
+			case 1: gen(STO, leftNode->level, leftNode->value); break;
+			case 2: 
+				iii = leftNode->dim[33];
+				maxdim = leftNode->dim[0];
+
+				gen(LEA, leftNode->level, leftNode->value);
+				iii ++;
+				dhead = (dimensionHead*) &table[iii];
+				iii ++;
+
+				gen(LIT, 0, leftNode->dim[1]);
+
+				for(itr = 2; itr <= maxdim; ++ itr)
+				{
+					iii ++;
+					dim = (dimension*) &table[iii];
+					gen(LIT, 0, dim->width);
+					gen(OPR, 0, OPR_MUL);
+					gen(LIT, 0, leftNode->dim[itr]);
+					gen(OPR, 0, OPR_ADD);
+				}
+
+				gen(OPR, 0, OPR_ADD);
+
+				switch(rightNode->type)
+				{
+					case 0: gen(LIT, 0, rightNode->value); break;
+					case 1: gen(LOD, rightNode->level, rightNode->value); break;
+					case 2: 
+						iii = rightNode->dim[33];
+						maxdim = rightNode->dim[0];
+
+						gen(LEA, rightNode->level, rightNode->value);
+						iii ++;
+						dhead = (dimensionHead*) &table[iii];
+						iii ++;
+
+						gen(LIT, 0, rightNode->dim[1]);
+
+						for(itr = 2; itr <= maxdim; ++ itr)
+						{
+							iii ++;
+							dim = (dimension*) &table[iii];
+							gen(LIT, 0, dim->width);
+							gen(OPR, 0, OPR_MUL);
+							gen(LIT, 0, rightNode->dim[itr]);
+							gen(OPR, 0, OPR_ADD);
+						}
+
+						gen(OPR, 0, OPR_ADD);
+						
+						gen(LODAR, 0, 0);
+						break;
+				};
+
+				gen(STOAR,0,0);	
+				break;
+		};
+		
+
+		-- listSize;
+		leftNode = leftNode->next;
+		rightNode = rightNode->next;
+	}
+}
 
 //operation to chain list //added by zjr 17.10.27
 void initchainlist()
