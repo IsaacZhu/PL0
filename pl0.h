@@ -134,7 +134,7 @@ enum idtype
 //ZJR add LODST POP, and EXC 12.9 #Z15
 enum opcode
 {
-	LIT, OPR, LOD, STO, CAL, INT, JMP, JPC,JLEZ,JGZ,RET,APOP,ASTO,LODA,LEA, LODAR, STOAR, OUTS, IN,
+	LIT, OPR, LOD, STO, CAL, INT, JMP, JPC,JZ,JNZ,RET,APOP,ASTO,LODA,LEA, LODAR, STOAR, OUTS, IN,
 	LODST,POP,EXC, CALST, CMP, SWIT
 };
 
@@ -313,7 +313,7 @@ char csym[NSYM + 1] =
 #define MAXINS   25
 char* mnemonic[MAXINS] =
 {
-	"LIT", "OPR", "LOD", "STO", "CAL", "INT", "JMP", "JPC","JLEZ","JGZ", "RET","APOP","ASTO","LODA", "LEA", "LODAR", "STOAR", "OUTS", "IN",
+	"LIT", "OPR", "LOD", "STO", "CAL", "INT", "JMP", "JPC","JZ","JNZ", "RET","APOP","ASTO","LODA", "LEA", "LODAR", "STOAR", "OUTS", "IN",
 	"LODST","POP","EXC", "CALST","CMP","SWIT"
 };
 
@@ -371,11 +371,17 @@ char tmpparaname[10][100];
 int tmpparanum;
 char numstring[10];
 
+/*
 int cx6[5][10],cx7[5][10];
 int sign_and[5]={0,0,0,0,0};
 int sign_or[5]={0,0,0,0,0};
 int lev=0;
 int sign_condition=0;//----add by ywt 2017.10.25
+*/
+
+//modified by ljq 17.12.13
+int cx6[100],cx7[100];
+int sign_and=0;int sign_or=0;int sign_condition=0;
 
 //ljq
 typedef struct 

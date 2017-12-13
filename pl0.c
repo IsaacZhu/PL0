@@ -997,14 +997,14 @@ void factor(symset fsys)
 		}
 		else if (sym == SYM_LPAREN)
 		{
-			lev++;	//ywt 11.28	//level of short-cir-cal
+			//lev++;	//ywt 11.28	//level of short-cir-cal
 			getsym();
 			set = uniteset(createset(SYM_RPAREN, SYM_NULL), fsys);
 			expression(set);
 			destroyset(set);
 			if (sym == SYM_RPAREN)
 			{
-				lev--;	//ywt 11.28	//level of short-cir-cal
+				//lev--;	//ywt 11.28	//level of short-cir-cal
 				getsym();
 
 				//Dong Shi, 12.3, Add ++/-- handling
@@ -1273,55 +1273,79 @@ void bit_or_expr(symset fsys)	//Bit operator or '|'
 void logi_and_expression(symset fsys)//----change by ywt 2017.10.25
 {//deal with logical "and"
 	symset set;
+	int sign;
+	sign = sign_and;
 	set = uniteset(fsys, createset(SYM_AND, SYM_NULL));
 	//addictive_expression(set);
 	bit_or_expr(set);
 	while (sym == SYM_AND)
 	{ 
-		if(sign_condition)
+		/*if(sign_condition)
 		{
 			//ywt
 		    sign_and[lev]++;              //用于记录and逻辑符的计算次数，并作为跳转指针
 		    cx6[lev][sign_and[lev]]=cx;        //记录执行到and逻辑符时的cx值
-		    gen(JLEZ,0,0);
-		}
+		    gen(JZ,0,0);
+		}*/
+		sign_and++;              //用于记录and逻辑符的计算次数，并作为跳转指针
+		cx6[sign_and]=cx;        //记录执行到and逻辑符时的cx值
+		gen(JZ,0,0);
 		getsym();
 		//addictive_expression(set);
 		bit_or_expr(set);
 		gen(OPR, 0, OPR_AND);
 	} // while
 	destroyset(set);
+	//modified by ljq 12.13
+	while(sign_and > sign)    			//将此函数内产生的JZ回填            
+	{
+		code[cx6[sign_and]].a=cx;
+		sign_and--;
+	}
 }//logi_and_expression
 
 void logi_or_expression(symset fsys)//----change by ywt,2017.10.25
 {//deal with logical "or"
 	symset set;
+	int sign;
+	sign = sign_or;
 	set = uniteset(fsys, createset(SYM_OR, SYM_NULL));
 	logi_and_expression(set);
 	while (sym == SYM_OR)
 	{
-		if(sign_condition)
+		/*if(sign_condition)
 		{
 			//ywt
 			while(sign_and[lev])                      //判断前面的符号是否存在and，若存在，则让上一个and继续执行
 	      	{
-				  /*code[cx6[sign_and]].a=cx6[sign_and]+1;*/ code[cx6[lev][sign_and[lev]]].a=cx+1;
+				  /*code[cx6[sign_and]].a=cx6[sign_and]+1; code[cx6[lev][sign_and[lev]]].a=cx+1;
 			      sign_and[lev]--;
 		    }
 		    sign_or[lev]++;                     //用于记录or逻辑符的计算次数，并作为跳转指针
 		    cx7[lev][sign_or[lev]]=cx;               // //记录执行到or逻辑符时的cx值
-		    gen(JGZ,0,0);
-		}
+		    gen(JNZ,0,0);
+		}*/
+		sign_or++;                     //用于记录or逻辑符的计算次数，并作为跳转指针
+		cx7[sign_or]=cx;               // //记录执行到or逻辑符时的cx值
+		gen(JNZ,0,0);
 		getsym();
 		logi_and_expression(set);
 		gen(OPR, 0, OPR_OR);
 	} // while
 	destroyset(set);
+	//modified by ljq 12.13
+	while(sign_or > sign)                //将此函数内产生的JNZ回填
+	{
+		code[cx7[sign_or]].a=cx;	
+		sign_or--;
+	}
 }//logi_or_expression
 
 //declare conditon() //zjr //12.8 #Z4
 void condition(symset fsys);
 void expression(symset fsys);
+//declare of makeList to get rid of warning, ljq, 12.13
+int makeList(symset fsys);
 
 //do nothing just to fit the requirement of YACC grammer //#Z20
 void conditional_expression(symset fsys)
@@ -1335,7 +1359,7 @@ void conditional_expression(symset fsys)
 		getsym();						
         int falsecx,s2endcx;    //记录出口地址
         falsecx=cx;
-		gen(JLEZ,0,0);
+		gen(JZ,0,0);
         symset set2=uniteset(fsys,createset(SYM_COLON,SYM_NULL));
         expression(set2);        //在我们的代码中应该是condition_expr，因为我们这个代码的优先级错了
         if (sym==SYM_COLON)		//':' 
@@ -1508,6 +1532,7 @@ void condition(symset fsys)//---change by ywt,2017.10.25
 		} // else
 		destroyset(set);
 	} // else
+	/*
 	for(i=0;i<5;i++)
 	{
 	for(;sign_or[i]>0;)//用于回填JMP_or跳转地址	//ywt
@@ -1515,12 +1540,13 @@ void condition(symset fsys)//---change by ywt,2017.10.25
 		 code[cx7[i][sign_or[i]]].a=cx+1;
 		 sign_or[i]--;
 	}
-	}
+	}*/
 	sign_condition=0;    
 } // condition
 
 /////////////////////////////////////
-void Endcondition(int JPcx)//add by ywt 2017.10.25,用于回填JMP_and跳转地址
+//old Endcondition
+/*void Endcondition(int JPcx)//add by ywt 2017.10.25,用于回填JMP_and跳转地址
 {
 	int i;
 	for(i=0;i<5;i++)
@@ -1531,6 +1557,17 @@ void Endcondition(int JPcx)//add by ywt 2017.10.25,用于回填JMP_and跳转地�
 		sign_and[i]--;
 	 } 
 	}
+}
+*/
+
+/////////////////////////////////////
+void Endcondition(int JPcx)//add by ywt 2017.10.25,用于回填JMP_and跳转地址
+{
+	for(;sign_and>0;)//
+	{ 
+		code[cx6[sign_and]].a=JPcx;
+		sign_and--;
+	 } 
 }
 
 //Dong Shi, 12.1, add format translate
@@ -1606,6 +1643,7 @@ void formatTranslate(){
 void statement(symset fsys)
 {
 	int i, cx1, cx2,cx3,cx4,cx5,depth,cx6;
+	int false_out;
 	symset set1, set;
 	void formatTranslate();
 
@@ -1904,6 +1942,8 @@ void statement(symset fsys)
 		set1 = createset(SYM_THEN, SYM_DO, SYM_NULL);
 		set = uniteset(set1, fsys);
 		condition(set);
+		false_out = cx;
+		gen(JZ, 0, 0);
 		destroyset(set1);
 		//destroyset(set);	//why? zjr11.27
 		if (sym == SYM_THEN)
@@ -1914,8 +1954,8 @@ void statement(symset fsys)
 		{
 			error(16); // 'then' expected.
 		}
-		cx1 = cx;
-		gen(JPC, 0, 0);
+		//cx1 = cx;
+		//gen(JPC, 0, 0);
 		statement(fsys);
 		getsym();
 		if(sym==SYM_ELSE_IF)//add by ywt,deal with SYM_ELSE_IF,2017.10.20
@@ -1931,35 +1971,43 @@ void statement(symset fsys)
 				error(16); // 'then' expected.
 		    }
             cx4=cx;
-            code[cx1].a=cx+1;
-            gen(JPC,0,0);
+            //code[cx1].a=cx+1;
+            //gen(JPC,0,0);
+			code[false_out].a = cx;
+            gen(JZ,0,0);
             statement(fsys);
 			getsym();   
-			 if(sym==SYM_ELSE) 
-           {
-            getsym();
-            cx5=cx;
-            code[cx4].a=cx+1;
-            gen(JMP,0,0);
-            statement(fsys);
-            code[cx5].a=cx;                                                  
-           }     
-		   else
-		   code[cx4].a=cx;
-		   Endcondition(code[cx4].a);      //用于回填JMP_and跳转地址                                               
+			if(sym==SYM_ELSE) 
+           	{
+            	getsym();
+            	cx5=cx;
+	            code[cx4].a=cx+1;
+	            gen(JMP,0,0);
+	            statement(fsys);
+	            code[cx5].a=cx;                                                  
+           	}     
+		   	else
+		   	{
+		   		code[cx4].a=cx;
+		   	}
+		   //Endcondition(code[cx4].a);      //用于回填JMP_and跳转地址                                               
         }
 		else if(sym==SYM_ELSE) //add by ywt,deal with SYM_ELSE,2017.10.20
         {
             getsym();
             cx3=cx;
-            code[cx1].a=cx+1;
+            //code[cx1].a=cx+1;
+            code[false_out].a = cx;
             gen(JMP,0,0);
             statement(fsys);
             code[cx3].a=cx;                                                  
          }
 		else
-		code[cx1].a = cx;
-		Endcondition(code[cx1].a);    //用于回填JMP_and跳转地址
+		{
+			//code[cx1].a = cx;
+			code[false_out].a = cx;
+		}
+		//Endcondition(code[cx1].a);    //用于回填JMP_and跳转地址
 	}
 	else if (sym == SYM_BEGIN)
 	{ // block
@@ -2183,7 +2231,7 @@ void statement(symset fsys)
 		for(i=mcx[deep]+1;i<=ecx[deep];i++)
 		{
 			code[cx4]=code[i];
-			if(code[cx4].f==JMP||code[cx4].f==JGZ||code[cx4].f==JLEZ)
+			if(code[cx4].f==JMP||code[cx4].f==JNZ||code[cx4].f==JZ)
 			if(code[cx4].a>=bcx[deep]&&code[cx4].a<=ecx[deep])
 			code[cx4].a-=mcx[deep]-bcx[deep]+1;
 			cx4++;
@@ -2211,7 +2259,7 @@ void statement(symset fsys)
 		for(i=0;i<=casenum[deep];i++)//对case部分跳转判断增加指令
 		{
 			gen(CMP,0,case_num[deep][i]);
-			gen(JLEZ,0,case_cx[deep][i]);
+			gen(JZ,0,case_cx[deep][i]);
 		}
 		casenum[deep]=-1;
 		if(defaultlist[deep])
@@ -3229,13 +3277,13 @@ void interpret()
 				pc = i.a;
 			top--;
 			break;
-		case JLEZ: 			//added by ywt
+		case JZ: 			//added by ywt
 			if (stack[top] == 0)
 			{
 				pc = i.a;
 			}
 			break;
-		case JGZ:
+		case JNZ:
 			if (stack[top] != 0)
 			{
 				pc = i.a;
