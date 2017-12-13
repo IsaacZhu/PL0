@@ -431,6 +431,5 @@ struct listNode{
 
 struct list listTable[128];
 int listTableSize = 0; 
-
-
+void genListChainAssign();
 // EOF PL0.h
