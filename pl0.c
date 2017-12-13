@@ -778,7 +778,7 @@ void factor(symset fsys)
 						paramnum=nodeparam(id);
 						mask *basemask;
 						basemask=(mask *)&table[position("/pbase")];
-						gen(ASTO,0,basemask->address);	//store top to base
+						//gen(ASTO,0,basemask->address);	//store top to base   delete it zjr 12.13
 
 						getsym();
 						
@@ -804,17 +804,17 @@ void factor(symset fsys)
 										{
 											arr=(array *)&table[papos];
 											gen(LOD,level-arr->level,arr->address);			//load start address of array from stack
-											gen(APOP,0,basemask->address);
+											//gen(APOP,0,basemask->address); delete it zjr 12.13
 											papos++;
 											dhead=(dimensionHead *)&table[papos];	//to get num of dimension
 											gen(LIT,0,dhead->depth);
-											gen(APOP,0,basemask->address);
+											//gen(APOP,0,basemask->address); delete it zjr 12.13
 											for (j=0;j<(dhead->depth);++j)		//put dimensions to stack
 											{
 												papos++;
 												dim=(dimension *)&table[papos];
 												gen(LIT,0,dim->width);
-												gen(APOP,0,basemask->address);
+												//gen(APOP,0,basemask->address); delete it zjr 12.13
 											}
 											pnum+=(dhead->depth+2);	
 											getsym();
@@ -823,17 +823,17 @@ void factor(symset fsys)
 										{
 											arr=(array *)&table[papos];
 											gen(LEA,level-arr->level,arr->address);
-											gen(APOP,0,basemask->address);
+											// gen(APOP,0,basemask->address); delete it zjr 12.13
 											papos++;
 											dhead=(dimensionHead *)&table[papos];	//to get num of dimension
 											gen(LIT,0,dhead->depth);
-											gen(APOP,0,basemask->address);
+											//gen(APOP,0,basemask->address);  delete it zjr 12.13
 											for (j=0;j<(dhead->depth);++j)		//put dimensions to stack
 											{
 												papos++;
 												dim=(dimension *)&table[papos];
 												gen(LIT,0,dim->width);
-												gen(APOP,0,basemask->address);
+												//gen(APOP,0,basemask->address); delete it zjr 12.13
 											}
 											pnum+=(dhead->depth+2);				
 											getsym();
@@ -845,7 +845,7 @@ void factor(symset fsys)
 									{
 										s1=createset(SYM_RPAREN,SYM_COMMA,SYM_NULL); //end when meet ")",","
 										expression(s1);		//analyse the expression in argument
-										gen(APOP,0,basemask->address);	//clear stack
+										//gen(APOP,0,basemask->address);	//clear stack   delete it zjr 12.13
 										//getsym();
 									}//else variable
 									if (pnum>paramnum)	//parameters not compatible 
@@ -1641,7 +1641,7 @@ void statement(symset fsys)
 			{	
 				mask *basemask;
 				basemask=(mask *)&table[position("/pbase")];
-				gen(ASTO,0,basemask->address);	//store top to base
+				//gen(ASTO,0,basemask->address);	//store top to base    delete it zjr 12.13
 
 				getsym();
 						
@@ -3241,6 +3241,7 @@ void interpret()
 				pc = i.a;
 			}
 			break;
+		/* DELETE ASTO AND APOP.So we can use procedure as parameter now zjr 12.13
 		case APOP:
 			stack[++stack[base(stack,b,0)+i.a]]=stack[top];
 			top=stack[base(stack,b,0)+i.a];
@@ -3249,6 +3250,7 @@ void interpret()
 		case ASTO:
 			stack[base(stack,b,0)+i.a]=top;
 			break;
+		*/
 		//load argument from stack //zjr 11.2
 		case LODA:
 			stack[base(stack,b,0)+i.a+2]=stack[base(stack,b,0)+i.a-i.l-1];
