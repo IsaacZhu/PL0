@@ -158,6 +158,11 @@ void printsym()
 	//ZJR 12.8 ADD '<<' AND '>>' //#Z5
 	"SYM_LSHIFT",
 	"SYM_RSHIFT"
-};
+	};
 	printf("sym is %s\n",symbset[sym]);
+}
+
+void printstackn(int *stack,int top,int n){
+	int i=0;
+	for (;i<n;i++) printf("stack[top-%d]:%d\n",i,stack[top-i]);
 }

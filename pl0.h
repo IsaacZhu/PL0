@@ -438,4 +438,8 @@ struct listNode{
 struct list listTable[128];
 int listTableSize = 0; 
 void genListChainAssign();
+
+//zjr 12.13 for list assignment
+void genFirstAssignment(int rank,int assignop);
+int ListChainAssignOp[128];
 // EOF PL0.h

@@ -2323,12 +2323,32 @@ void statement(symset fsys)
 		AssignStackLeft[AssignStackTop] = thisList;
 		++ AssignStackTop;
 
-		while (sym == SYM_BECOMES)
+		int rank=1;
+		//while (sym == SYM_BECOMES)
+		//support different assignment ops zjr 12.13
+		assignop = sym;
+		while (inset(assignop,assignset))
 		{
 			getsym();//should be [[
-			thisList = makeList(fsys);
-			AssignStackLeft[AssignStackTop] = thisList;
-			++ AssignStackTop;
+			if (sym == SYM_LLBRC)		// [[ is left values
+			{
+				thisList = makeList(fsys);
+				AssignStackLeft[AssignStackTop] = thisList;
+				ListChainAssignOp[AssignStackTop]= assignop; //record assign op of this level zjr 12.13
+				++ AssignStackTop;
+			}
+			else {
+				expression(uniteset(fsys,createset(SYM_COMMA,SYM_NULL)));	//get expression value
+				genFirstAssignment(rank++,assignop);				//gen first assign
+				while (sym == SYM_COMMA)
+				{
+					getsym();
+					expression(fsys);	//next expr
+					genFirstAssignment(rank++,assignop);
+				}
+				break;
+			}
+			assignop = sym;
 		}
 		
 		genListChainAssign();
@@ -2342,6 +2362,92 @@ void statement(symset fsys)
 	//test(fsys, phi, 19);
 } // statement
 
+//Finish first assignment in list-like assignment zjr 12.13
+void genFirstAssignment(int rank,int assignop)
+{
+	int listpos = AssignStackLeft[AssignStackTop-1];
+	struct listNode* NP = listTable[listpos].root;
+	int i;
+	for (i=rank;i>1;i--) NP = NP -> next;	//get correct position of node
+
+	int iii;
+	dimensionHead* dhead;
+	dimension* dim;
+	int maxdim;
+	int itr;
+
+	if (assignop!=SYM_BECOMES)
+	{
+		//lod initial value of variable
+		switch(NP->type)
+		{
+			case 1:gen(LOD,NP->level,NP->value); break;	//variable
+			default:	//array
+				iii = NP->dim[33];
+				maxdim = NP->dim[0];
+				switch(NP->type)
+				{
+					case 2: gen(LEA, NP->level, NP->value);break;
+					case 3: gen(LOD, NP->level, NP->value);break; 
+				}
+				iii ++;
+				dhead = (dimensionHead*) &table[iii];
+				iii ++;
+
+				gen(LIT, 0, NP->dim[1]);
+
+				for(itr = 2; itr <= maxdim; ++ itr)
+				{
+					iii ++;
+					dim = (dimension*) &table[iii];
+					gen(LIT, 0, dim->width);
+					gen(OPR, 0, OPR_MUL);
+					gen(LIT, 0, NP->dim[itr]);
+					gen(OPR, 0, OPR_ADD);
+				}
+				gen(OPR, 0, OPR_ADD);
+				gen(LODAR,0,0);
+		}//switch
+		assign_op_judge(assignop);
+	}//if
+	//copy DS's work. finish a process of assignment
+	switch(NP->type){
+			//store
+			//ID_VARIABLE
+			case 1: gen(STO, NP->level, NP->value); break;
+			default:	//array
+				iii = NP->dim[33];
+				maxdim = NP->dim[0];
+				switch(NP->type)
+				{
+					case 2: gen(LEA, NP->level, NP->value);break; //ARRAY
+					case 3: gen(LOD, NP->level, NP->value);break; //PARRAY
+				}
+
+				iii ++;
+				dhead = (dimensionHead*) &table[iii];
+				iii ++;
+
+				gen(LIT, 0, NP->dim[1]);
+
+				for(itr = 2; itr <= maxdim; ++ itr)
+				{
+					iii ++;
+					dim = (dimension*) &table[iii];
+					gen(LIT, 0, dim->width);
+					gen(OPR, 0, OPR_MUL);
+					gen(LIT, 0, NP->dim[itr]);
+					gen(OPR, 0, OPR_ADD);
+				}
+				gen(OPR, 0, OPR_ADD);
+				gen(EXC,0,0);	//move value to the stack top // 
+				gen(STOAR,0,0);	
+				gen(POP,0,0);
+				break;
+		};
+
+}//getFirstAssignment
+
 //Dong Shi, 12.12, Add function to process the list
 int makeList(symset fsys)
 {
@@ -2354,8 +2460,8 @@ int makeList(symset fsys)
 	int thisList;
 	int flag;
 
-	if (sym == SYM_LLBRC)
-	{
+	//if (sym == SYM_LLBRC)		move this judge to statement zjr 12.13
+	//{
 		thisList = listTableSize;
 		++ listTableSize;
 		
@@ -2427,11 +2533,39 @@ int makeList(symset fsys)
 							nn->dim[0] = arrayLevel;
 							nn->dim[33] = i;
 							break;
-					}
+						case ID_PARRAY:
+							arrayLevel = 0;
+							mk = (mask*) &table[i];
+							nn->type = 3;
+							nn->value = mk->address;
+							nn->level = level - mk->level;
+							getsym();
+							while(sym == SYM_LSBRAC)
+							{
+								getsym();
+								if(sym == SYM_IDENTIFIER)
+								{
+									if (table[i].kind == ID_CONSTANT)
+									{
+										++ arrayLevel;
+										nn->dim[arrayLevel] = table[i].value;
+									}
+								}else if(sym == SYM_NUMBER)
+								{
+									++ arrayLevel;
+									nn->dim[arrayLevel] = num;
+								}
+								getsym(); //']'
+								getsym(); 
+							}
+							nn->dim[0] = arrayLevel;
+							nn->dim[33] = i;
+							break;
+					}//switch
 					if (sym == SYM_LRBRC) flag = 1;
 					getsym();
-				}
-			}
+				}//else
+			}//if
 			else if (sym == SYM_NUMBER)
 			{
 				nn->type = 0;
@@ -2449,7 +2583,7 @@ int makeList(symset fsys)
 		}
 
 		listTable[thisList].size = listLength;
-	}
+	//}
 
 	return thisList;
 }
@@ -2459,19 +2593,19 @@ void genListChainAssign()
 {
 	int leftList;
 	int rightList;
-	void genListAssign(int left, int right);
+	void genListAssign(int left, int right, int assignop); //add an assignop zjr 12.13
 
 	while(AssignStackTop != 1)
 	{
 		-- AssignStackTop;
 		rightList = AssignStackLeft[AssignStackTop];
 		leftList = AssignStackLeft[AssignStackTop-1];
-		genListAssign(leftList, rightList);
+		genListAssign(leftList, rightList, ListChainAssignOp[AssignStackTop]);	//add an assignop zjr 12.13
 	}
 }
 
 //Dong Shi, 12.12, Add two list assign code generate
-void genListAssign(int left, int right)
+void genListAssign(int left, int right,int assignop)
 {
 	struct listNode* leftNode, *rightNode;
 	int listSize;
@@ -2488,17 +2622,25 @@ void genListAssign(int left, int right)
 
 	while(listSize > 0)
 	{
-		if(leftNode->type != 2)
-		{
+		//if(leftNode->type != 2)
+		//{
+			//LOD RIGHT VALUE
 			switch(rightNode->type)
 			{
 				case 0: gen(LIT, 0, rightNode->value); break;
 				case 1: gen(LOD, rightNode->level, rightNode->value); break;
-				case 2: 
+				default:	//array
 					iii = rightNode->dim[33];
 					maxdim = rightNode->dim[0];
-
-					gen(LEA, rightNode->level, rightNode->value);
+					switch(rightNode->type)
+					{
+						case 2: //ID_ARRAY
+							gen(LEA, rightNode->level, rightNode->value);
+							break;
+						case 3: //ID_PARRAY
+							gen(LOD, rightNode->level, rightNode->value);
+							break;
+					}//switch
 					iii ++;
 					dhead = (dimensionHead*) &table[iii];
 					iii ++;
@@ -2519,16 +2661,65 @@ void genListAssign(int left, int right)
 					
 					gen(LODAR, 0, 0);
 					break;
-			};
-		}
+			}; //switch
+		//}//if
+
+		//support different assignment ops zjr 12.13
+		if (assignop!=SYM_BECOMES)
+		{
+			//lod initial value of variable
+			switch(leftNode->type)
+			{
+				case 1:gen(LOD,leftNode->level,leftNode->value); break;
+				default:	//array
+					iii = leftNode->dim[33];
+					maxdim = leftNode->dim[0];
+					switch(leftNode->type)
+					{
+						case 2: //ID_ARRAY
+							gen(LEA, leftNode->level, leftNode->value);
+							break;
+						case 3: //ID_PARRAY
+							gen(LOD, leftNode->level, leftNode->value);
+							break;
+					}//switch
+
+					iii ++;
+					dhead = (dimensionHead*) &table[iii];
+					iii ++;
+
+					gen(LIT, 0, leftNode->dim[1]);
+
+					for(itr = 2; itr <= maxdim; ++ itr)
+					{
+						iii ++;
+						dim = (dimension*) &table[iii];
+						gen(LIT, 0, dim->width);
+						gen(OPR, 0, OPR_MUL);
+						gen(LIT, 0, leftNode->dim[itr]);
+						gen(OPR, 0, OPR_ADD);
+					}
+					gen(OPR, 0, OPR_ADD);
+					gen(LODAR,0,0);
+			}//switch
+			assign_op_judge(assignop);
+		}//if
 
 		switch(leftNode->type){
 			case 1: gen(STO, leftNode->level, leftNode->value); break;
-			case 2: 
+			default:	//array
 				iii = leftNode->dim[33];
 				maxdim = leftNode->dim[0];
+				switch(leftNode->type)
+				{
+					case 2: //ID_ARRAY
+						gen(LEA, leftNode->level, leftNode->value);
+						break;
+					case 3: //ID_PARRAY
+						gen(LOD, leftNode->level, leftNode->value);
+						break;
+				}//switch
 
-				gen(LEA, leftNode->level, leftNode->value);
 				iii ++;
 				dhead = (dimensionHead*) &table[iii];
 				iii ++;
@@ -2546,39 +2737,9 @@ void genListAssign(int left, int right)
 				}
 
 				gen(OPR, 0, OPR_ADD);
-
-				switch(rightNode->type)
-				{
-					case 0: gen(LIT, 0, rightNode->value); break;
-					case 1: gen(LOD, rightNode->level, rightNode->value); break;
-					case 2: 
-						iii = rightNode->dim[33];
-						maxdim = rightNode->dim[0];
-
-						gen(LEA, rightNode->level, rightNode->value);
-						iii ++;
-						dhead = (dimensionHead*) &table[iii];
-						iii ++;
-
-						gen(LIT, 0, rightNode->dim[1]);
-
-						for(itr = 2; itr <= maxdim; ++ itr)
-						{
-							iii ++;
-							dim = (dimension*) &table[iii];
-							gen(LIT, 0, dim->width);
-							gen(OPR, 0, OPR_MUL);
-							gen(LIT, 0, rightNode->dim[itr]);
-							gen(OPR, 0, OPR_ADD);
-						}
-
-						gen(OPR, 0, OPR_ADD);
-						
-						gen(LODAR, 0, 0);
-						break;
-				};
-
-				gen(STOAR,0,0);	
+				gen(EXC,0,0);	//zjr 12.13 
+				gen(STOAR,0,0);
+				gen(POP,0,0);	//zjr 12.13 pop value of STOAR's return value	
 				break;
 		};
 		
@@ -2586,8 +2747,8 @@ void genListAssign(int left, int right)
 		-- listSize;
 		leftNode = leftNode->next;
 		rightNode = rightNode->next;
-	}
-}
+	}//while
+}//genListAssign
 
 //operation to chain list //added by zjr 17.10.27
 void initchainlist()
