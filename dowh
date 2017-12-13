@@ -1,0 +1,23 @@
+var result,a,i;
+begin
+        i:=0;
+	result:=5;
+        do
+        {
+           if(a==3)
+           then
+              {
+                      do
+                      {
+                        if(i==2)
+                        then 
+                              break;
+                        else ;
+                              i++;
+                      };while(i<a);
+              };
+           else ;
+           a++;
+        };while(a<result);
+        printf("hello @0 @1\n", a,i);
+end.

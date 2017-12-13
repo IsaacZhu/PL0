@@ -2040,6 +2040,7 @@ void statement(symset fsys)
 	}
 	else if (sym == SYM_WHILE)
 	{ // while statement
+	    deep++;//break level
 		cx1 = cx;
 		getsym();
 		set1 = createset(SYM_DO, SYM_NULL);
@@ -2060,9 +2061,54 @@ void statement(symset fsys)
 		statement(fsys);
 		gen(JMP, 0, cx1);
 		code[cx2].a = cx;
+		Endcondition(code[cx2].a);
+		for(;breaknum[deep]>=0;breaknum[deep]--)
+		  code[breaklist[deep][breaknum[deep]]].a=cx;
+		deep--;
+	}
+	else if (sym == SYM_DO)
+	{ // do_while statement
+	    deep++;//break level
+		cx1 = cx;
+		gen(JMP,0,0);
+		getsym();
+		cx2=cx;
+		statement(fsys);
+		if(sym==SYM_SEMICOLON)
+		    getsym();
+		else 
+		    error(0);
+		if(sym==SYM_WHILE)
+		    getsym();
+		else 
+		    error(0);
+		if(sym==SYM_LPAREN)
+		    getsym();
+		else
+		    error(0);
+		code[cx1].a=cx;
+		set1 = createset(SYM_RPAREN, SYM_NULL);
+		set = uniteset(set1, fsys);
+		condition(set1);
+		if (sym == SYM_RPAREN)
+		{
+			getsym();
+		}
+		else
+		{
+			error(18); // ')' expected.
+		}
+		destroyset(set1);
+		destroyset(set);
+		gen(JNZ, 0, cx2);
+		Endcondition(cx);
+		for(;breaknum[deep]>=0;breaknum[deep]--)
+		  code[breaklist[deep][breaknum[deep]]].a=cx;
+		deep--;
 	}
 	else if (sym == SYM_FOR)
-	{ // IF statement
+	{ // for statement
+	    deep++;//break level
 		getsym();
 		if (sym == SYM_LPAREN)
 		{
@@ -2078,8 +2124,8 @@ void statement(symset fsys)
 		set1 = createset(SYM_NULL);
 		set = uniteset(set1, fsys);
 		condition(set);
-		destroyset(set1);
-		destroyset(set);
+		//destroyset(set1);
+		//destroyset(set);
 		getsym();
 		cx2 = cx;
 		gen(JPC, 0, 0);
@@ -2095,15 +2141,18 @@ void statement(symset fsys)
 		}
 		else
 		{
-			error(18); // '(' expected.
+			error(18); // ')' expected.
 		}
 		destroyset(set1);
 		destroyset(set);
 		code[cx6].a=cx;
 		statement(fsys);
 		gen(JMP, 0, cx6+1);
+		for(;breaknum[deep]>=0;breaknum[deep]--)
+		  code[breaklist[deep][breaknum[deep]]].a=cx;
 		code[cx2].a = cx;
 		Endcondition(code[cx2].a);
+		deep--;
 	}
 	// Dong Shi, 12.3, delete inc and dec implement in statement
 	//Dong Shi, 11.23, disable error 19 check(for supporting ++ and --)
