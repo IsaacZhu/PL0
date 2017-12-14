@@ -1,0 +1,13 @@
+//test use procedure as parameter
+//zjr 12.11
+var i,j,b;
+procedure p(a,i,b);
+begin
+    return i+1;
+end;
+
+begin
+    i:=1;
+    j:=p(5,p(1,i,2),b);
+    printf("j:@0\n",j); //3 expected
+end.

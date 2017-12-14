@@ -776,7 +776,7 @@ void factor(symset fsys)
 						int pnum=0;			//record parameters number
 						int papos,j,paramnum;
 						paramnum=nodeparam(id);
-						mask *basemask;
+						mask *basemask,*pmask;
 						basemask=(mask *)&table[position("/pbase")];
 						//gen(ASTO,0,basemask->address);	//store top to base   delete it zjr 12.13
 
@@ -840,11 +840,42 @@ void factor(symset fsys)
 										}
 										else error(31);				//type mismatch
 									} //#2
+									//support ID_PVAR ZJR 12.14 #Z9
+									else if (paralist[pnum]==ID_PVAR)
+									{
+										if (sym == SYM_BITAND)
+										{
+											getsym();
+											papos=position(id);
+											if (papos==0)	error(11);	//undeclared
+											
+											else if (table[papos].kind==ID_PVAR) 
+											{//the variable to pass is a parameter variable
+												pmask=(mask *)&table[papos];
+												gen(LOD,level-pmask->level,pmask->address);
+												pnum++;
+											}
+											else if (table[papos].kind==ID_VARIABLE) 
+											{//the variable to pass is a normal variable
+												pmask=(mask *)&table[papos];
+												gen(LEA,level-pmask->level,pmask->address);
+												pnum++;
+											}
+											else error(31);	//type mismatch
+											getsym();
+										}//if sym_bitand
+										else 
+										{
+											error(31);	//type mismatch
+											getsym();
+										}
+									}
 									//variable
 									else
 									{
 										s1=createset(SYM_RPAREN,SYM_COMMA,SYM_NULL); //end when meet ")",","
 										expression(s1);		//analyse the expression in argument
+										pnum++;
 										//gen(APOP,0,basemask->address);	//clear stack   delete it zjr 12.13
 										//getsym();
 									}//else variable
@@ -948,6 +979,12 @@ void factor(symset fsys)
 					destroyset(set);
 					destroyset(set1);
 
+					break;
+					//support referenced variable ZJR 12.13 #Z4
+				case ID_PVAR:
+					mk = (mask*) &table[i];
+					gen(LOD, level - mk->level, mk->address);
+					gen(LODAR,0,0);	
 					break;
 				} // switch
 			}
@@ -1709,7 +1746,9 @@ void statement(symset fsys)
 			return;
 		}
 		//support ID_PRRAY //zjr //11.17 //#Z8
-		else if (table[i].kind != ID_VARIABLE && table[i].kind != ID_ARRAY && table[i].kind != ID_PARRAY)	//IF CONST
+		//support ID_PVAR ZJR 12.13 #Z5
+		else if (table[i].kind != ID_VARIABLE && table[i].kind != ID_ARRAY 
+			&& table[i].kind != ID_PARRAY && table[i].kind != ID_PVAR)	//IF CONST
 		{
 			error(12); // Illegal assignment.
 			i = 0;
@@ -1794,6 +1833,12 @@ void statement(symset fsys)
 			destroyset(set);
 			destroyset(set1);
 			getsym();
+		}
+		//HANDLE REFENRENCED VARIABLE  ZJR 12.13 #Z5
+		else if (table[i].kind == ID_PVAR)
+		{
+			mk = (mask*) &table[i];
+			gen(LOD,level-mk->level,mk->address);
 		}
 		else  	//id_variable
 		{		
@@ -1907,7 +1952,9 @@ void statement(symset fsys)
 			}
 		}
 		//add situation of ID_PARRAY //11.17 //zjr //#Z8
-		else if (table[i].kind == ID_ARRAY||table[i].kind == ID_PARRAY)
+		//Add ID_PVAR,which is similar to array ZJR 12.14 #Z5
+		else if (table[i].kind == ID_ARRAY||table[i].kind == ID_PARRAY
+				||table[i].kind == ID_PVAR)
 		{
 			//handle assignop  zjr 12.9 #Z14
 			if (assignop!=SYM_BECOMES) gen(LODST,0,0);	//lod factor
@@ -2431,6 +2478,11 @@ void genFirstAssignment(int rank,int assignop)
 		switch(NP->type)
 		{
 			case 1:gen(LOD,NP->level,NP->value); break;	//variable
+			//Support ID_PVAR ZJR 12.14 #Z7
+			case 4:
+				gen(LOD,NP->level,NP->value);	//Get address
+				gen(LODAR,0,0);
+				break;
 			default:	//array
 				iii = NP->dim[33];
 				maxdim = NP->dim[0];
@@ -2464,6 +2516,12 @@ void genFirstAssignment(int rank,int assignop)
 			//store
 			//ID_VARIABLE
 			case 1: gen(STO, NP->level, NP->value); break;
+			//Support ID_PVAR ZJR 12.14 #Z7
+			case 4:
+				gen(LOD,NP->level,NP->value);	//Get address
+				gen(EXC,0,0);
+				gen(STOAR,0,0);
+				break;
 			default:	//array
 				iii = NP->dim[33];
 				maxdim = NP->dim[0];
@@ -2610,6 +2668,14 @@ int makeList(symset fsys)
 							nn->dim[0] = arrayLevel;
 							nn->dim[33] = i;
 							break;
+						//Support ID_PVAR ZJR 12.14 #Z6
+						case ID_PVAR:
+							mk = (mask*) &table[i];
+							nn->type = 4;	//type set as 4
+							nn->value = mk->address;
+							nn->level = level - mk->level;
+							getsym();
+							break;
 					}//switch
 					if (sym == SYM_LRBRC) flag = 1;
 					getsym();
@@ -2678,6 +2744,11 @@ void genListAssign(int left, int right,int assignop)
 			{
 				case 0: gen(LIT, 0, rightNode->value); break;
 				case 1: gen(LOD, rightNode->level, rightNode->value); break;
+				//Support ID_PVAR ZJR 12.14 #Z8
+				case 4:
+					gen(LOD,rightNode->level,rightNode->value);	//Get address
+					gen(LODAR,0,0);	//get value
+					break;
 				default:	//array
 					iii = rightNode->dim[33];
 					maxdim = rightNode->dim[0];
@@ -2720,6 +2791,11 @@ void genListAssign(int left, int right,int assignop)
 			switch(leftNode->type)
 			{
 				case 1:gen(LOD,leftNode->level,leftNode->value); break;
+				//Support ID_PVAR ZJR 12.14 #Z8
+				case 4:
+					gen(LOD,leftNode->level,leftNode->value);	//Get address
+					gen(LODAR,0,0);	//get value
+					break;
 				default:	//array
 					iii = leftNode->dim[33];
 					maxdim = leftNode->dim[0];
@@ -2756,6 +2832,12 @@ void genListAssign(int left, int right,int assignop)
 
 		switch(leftNode->type){
 			case 1: gen(STO, leftNode->level, leftNode->value); break;
+			//Support ID_PVAR ZJR 12.14 #Z8
+			case 4:
+				gen(LOD,rightNode->level,rightNode->value);	//Get address
+				gen(EXC,0,0);
+				gen(STOAR,0,0);
+				break;
 			default:	//array
 				iii = leftNode->dim[33];
 				maxdim = leftNode->dim[0];
@@ -2854,6 +2936,15 @@ void param_enter()
 					dx++;
 				}
 			}//if id_array
+			//Add ID_PVAR for referenced variable ZJR 12.13 #Z3
+			else if (tmpparam[i].kind == ID_PVAR)
+			{
+				strcpy(table[++tx].name,tmpparam[i].name);
+				table[tx].kind=ID_PVAR;
+				mk=(mask *)&table[tx];
+				mk->level=level;
+				mk->address=dx++;	//data +1
+			} 
 			//it's ID_VARAIBLE
 			else
 			{
@@ -2890,6 +2981,14 @@ void param_enter()
 				}
 
 				i+=(dhead->depth+1);
+			}
+			//Add ID_PVAR for referenced variable ZJR 12.13 #Z3
+			else if (tmpparam[i].kind == ID_PVAR)	//cover it
+			{
+				table[pos].kind=ID_PVAR;	//change kind
+				mk=(mask *)&table[pos];
+				mk->level=level;
+				mk->address=dx++;
 			}
 			else	//It's variable.Cover it!
 			{
@@ -3164,6 +3263,25 @@ void block(symset fsys)
 								//getsym();	//next sym
 							}
 						}//if identifier
+						//add &varaible zjr 12.13 #Z2
+						else if (sym == SYM_BITAND)
+						{
+							getsym();
+							if (sym == SYM_IDENTIFIER)
+							{
+								strcpy(tmpparam[funcparam].name,id);
+								strcpy(tmpparaname[tmpparanum], id);	//ljq 12.10 for callstack
+								++tmpparanum;	//ljq 12.10 for callstack
+								tmpparam[funcparam].kind=ID_PVAR;
+								++funcparam;
+								getsym();
+							}
+							else 
+							{
+								error(31);
+								getsym();
+							}
+						}
 						else if (sym == SYM_COMMA)
 						{
 							getsym();	//next sym

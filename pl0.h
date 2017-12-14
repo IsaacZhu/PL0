@@ -118,9 +118,11 @@ enum symtype
 //Add array //ljq
 //Add ID_PARRAY for array arguments passing //zjr //11.7 //#Z4
 //Dong Shi, 12.12, Add ID_LIST
+//Add ID_PVAR for varaible parameter 12.13 #Z1
 enum idtype
 {
-	ID_CONSTANT, ID_VARIABLE, ID_PROCEDURE, ID_POINTER, ID_ARRAY,ID_PARRAY, ID_LIST
+	ID_CONSTANT, ID_VARIABLE, ID_PROCEDURE, ID_POINTER, 
+	ID_ARRAY,ID_PARRAY, ID_LIST, ID_PVAR
 };
 
 //add PAS: for parameter pass //modified by zjr 17.10.27

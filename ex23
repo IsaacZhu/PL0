@@ -1,0 +1,18 @@
+var m,n;
+procedure p(i,&j);
+    procedure  q(&j);
+    begin
+        j+=2;
+        return j-1;
+    end;
+begin
+    j*=4;
+    i:=q(&j);
+    return 0;
+end;
+begin
+    m:=3;
+    printf("m before procedure call: @0\n",m);  //3 
+    n:=p(n,&m);
+    printf("m after procedure call: @0\n",m);   //14
+end.
