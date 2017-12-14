@@ -2205,13 +2205,15 @@ void statement(symset fsys)
 		Endcondition(code[cx2].a);
 		for(;breaknum[deep]>=0;breaknum[deep]--)
 		  code[breaklist[deep][breaknum[deep]]].a=cx;
+		for(;continuenum[deep]>=0;continuenum[deep]--)
+		  code[continuelist[deep][continuenum[deep]]].a=cx1;
 		deep--;
 	}
 	else if (sym == SYM_DO)
 	{ // do_while statement
 	    deep++;//break level
-		cx1 = cx;
-		gen(JMP,0,0);
+		//cx1 = cx;
+		//gen(JMP,0,0);
 		getsym();
 		cx2=cx;
 		statement(fsys);
@@ -2227,7 +2229,7 @@ void statement(symset fsys)
 		    getsym();
 		else
 		    error(0);
-		code[cx1].a=cx;
+		//code[cx1].a=cx;
 		set1 = createset(SYM_RPAREN, SYM_NULL);
 		set = uniteset(set1, fsys);
 		condition(set1);
@@ -2245,6 +2247,8 @@ void statement(symset fsys)
 		Endcondition(cx);
 		for(;breaknum[deep]>=0;breaknum[deep]--)
 		  code[breaklist[deep][breaknum[deep]]].a=cx;
+		for(;continuenum[deep]>=0;continuenum[deep]--)
+		  code[continuelist[deep][continuenum[deep]]].a=cx2;
 		deep--;
 	}
 	else if (sym == SYM_FOR)
@@ -2291,6 +2295,8 @@ void statement(symset fsys)
 		gen(JMP, 0, cx6+1);
 		for(;breaknum[deep]>=0;breaknum[deep]--)
 		  code[breaklist[deep][breaknum[deep]]].a=cx;
+		for(;continuenum[deep]>=0;continuenum[deep]--)
+		  code[continuelist[deep][continuenum[deep]]].a=cx6+1;
 		code[cx2].a = cx;
 		Endcondition(code[cx2].a);
 		deep--;
@@ -2501,6 +2507,13 @@ void statement(symset fsys)
 	{
 		breaknum[deep]++;
 		breaklist[deep][breaknum[deep]]=cx;
+		gen(JMP,0,0);
+		getsym();
+	}
+	else if(sym==SYM_CONTINUE)
+	{
+		continuenum[deep]++;
+		continuelist[deep][continuenum[deep]]=cx;
 		gen(JMP,0,0);
 		getsym();
 	}

@@ -1,0 +1,20 @@
+var i,j;
+begin
+     j:=0;
+     i:=0;
+     do
+     {
+         i++;
+         if(i==5)
+         then
+             continue;
+        else ;
+         if(i==6)
+         then
+             continue;
+        else ;
+        j++;
+     };while(i<0);
+     printf("@0 @1\n",i,j);
+end.
+

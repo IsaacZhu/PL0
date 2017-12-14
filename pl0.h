@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#define NRW        25   // number of reserved words
+#define NRW        26   // number of reserved words
 #define TXMAX      500    // length of identifier table
 #define MAXNUMLEN  14     // maximum number of digits in numbers
 #define NSYM       22     // maximum number of symbols in array ssym and csym //ZJR 12.8 #Z1
@@ -111,7 +111,8 @@ enum symtype
 	//Dong Shi, 12.12, Add SYM LIST and SYM_LLBRC, SYM_LRBRC
 	SYM_LIST,
 	SYM_LLBRC,
-	SYM_LRBRC
+	SYM_LRBRC,
+	SYM_CONTINUE
 };
 
 //Add ID_POINTER //zjr 17.11.2 
@@ -241,6 +242,8 @@ int case_cx[10][10];
 int case_num[10][10];
 int breaklist[10][10];
 int breaknum[10]={-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+int continuelist[10][10];
+int continuenum[10]={-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 int casenum[10]={-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 int deep=-1;//add by ywt 
 
@@ -272,7 +275,7 @@ char* word[NRW + 1] =
 	"", /* place holder */
 	"begin", "call", "const", "do", "end","if",
 	"odd", "procedure", "then", "var", "while","else","else if","exit","return","for", "printf", "random", "input", 
-	"callstack","switch","case","break","default", "list"
+	"callstack","switch","case","break","default", "list","continue"
 };
 
 //关键字代号集，与关键字一一对应
@@ -286,7 +289,7 @@ int wsym[NRW + 1] =
 	SYM_IF, SYM_ODD, SYM_PROCEDURE, SYM_THEN, SYM_VAR, SYM_WHILE,
 	SYM_ELSE,SYM_ELSE_IF,SYM_EXIT,SYM_RETURN,SYM_FOR, SYM_PRINTF,
 	SYM_RANDOM, SYM_INPUT, SYM_CALST,SYM_SWITCH,SYM_CASE,SYM_BREAK,SYM_DEFAULT,
-	SYM_LIST
+	SYM_LIST,SYM_CONTINUE
 };
 
 //ADD SYM_QUES AND SYM_COLON //ZJR 12.8 //#Z1

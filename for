@@ -1,5 +1,6 @@
-var result,a,i;
+var result,a,i,j;
 begin
+        j:=0;
         i:=0;
 	result:=5;
         for(;i<10;i++)
@@ -19,6 +20,10 @@ begin
                     };
             };
             else result:=1;
+            if(i==9)
+            then continue;
+            else ;
+            j++;
         };
         printf("hello @0 @1 @2\n", a,i,result);
 end.
