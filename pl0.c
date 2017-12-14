@@ -2114,7 +2114,7 @@ void statement(symset fsys)
             cx4=cx;
             //code[cx1].a=cx+1;
             //gen(JPC,0,0);
-			code[false_out].a = cx;
+			code[false_out].a = cx + 1;
             gen(JZ,0,0);
             statement(fsys);
 			getsym();   
@@ -2138,7 +2138,7 @@ void statement(symset fsys)
             getsym();
             cx3=cx;
             //code[cx1].a=cx+1;
-            code[false_out].a = cx;
+            code[false_out].a = cx + 1;
             gen(JMP,0,0);
             statement(fsys);
             code[cx3].a=cx;                                                  
