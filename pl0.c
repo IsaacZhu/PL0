@@ -1355,7 +1355,7 @@ void logi_or_expression(symset fsys)//----change by ywt,2017.10.25
 			//ywt
 			while(sign_and[lev])                      //判断前面的符号是否存在and，若存在，则让上一个and继续执行
 	      	{
-				  /*code[cx6[sign_and]].a=cx6[sign_and]+1; code[cx6[lev][sign_and[lev]]].a=cx+1;
+				  code[cx6[sign_and]].a=cx6[sign_and]+1; code[cx6[lev][sign_and[lev]]].a=cx+1;
 			      sign_and[lev]--;
 		    }
 		    sign_or[lev]++;                     //用于记录or逻辑符的计算次数，并作为跳转指针
@@ -3361,10 +3361,12 @@ void block(symset fsys)
 						else if (sym == SYM_BITAND)
 						{
 							getsym();
+							char str1[100]="&";
 							if (sym == SYM_IDENTIFIER)
 							{
 								strcpy(tmpparam[funcparam].name,id);
-								strcpy(tmpparaname[tmpparanum], id);	//ljq 12.10 for callstack
+								strcat(str1,id);
+								strcpy(tmpparaname[tmpparanum], str1);	//ljq 12.10 for callstack
 								++tmpparanum;	//ljq 12.10 for callstack
 								tmpparam[funcparam].kind=ID_PVAR;
 								++funcparam;
@@ -3533,7 +3535,7 @@ void interpret()
 	int npara = 0, paraseq;
 	stnode *upfunc;
 
-	printf("Begin executing PL/0 program.\n");
+	printf("Begin executing PL/0 program.\n\n");
 
 	pc = 0;
 	b = 1;
@@ -3792,6 +3794,7 @@ void interpret()
 			break;
 		//callstack by ljq 12.10
 		case CALST:
+			printf("\ncallstack:\n");//zjr 12.14 optimize the display effect
 			calldepth = 0;
 			uppc = pc;			//used to go up the stack
 			upbp = b;
@@ -3826,7 +3829,7 @@ void interpret()
 	}
 	while (pc);
 
-	printf("End executing PL/0 program.\n");
+	printf("\nEnd executing PL/0 program.\n");
 } // interpret
 
 //////////////////////////////////////////////////////////////////////
