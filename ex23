@@ -8,11 +8,10 @@ procedure p(i,&j);
 begin
     j*=4;
     i:=q(&j);
-    return 0;
 end;
 begin
     m:=3;
     printf("m before procedure call: @0\n",m);  //3 
-    n:=p(n,&m);
+    p(n,&m);
     printf("m after procedure call: @0\n",m);   //14
 end.

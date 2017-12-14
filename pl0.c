@@ -1705,36 +1705,121 @@ void statement(symset fsys)
 		{
 			error(11); // Undeclared identifier.
 		}
-		//Dong Shi, 10.29, Add support for naked procedure call 
+		//ZJR 12.14 COPY PROCEDURE WORK IN FACTOR
+		//NOW YOU COULD CALL A PROCEDURE NEGLECTING ITS RETURN VALUE 
 		else if (table[i].kind == ID_PROCEDURE)
 		{
+			//Dong Shi, 10.29, Handle Procedure
+			//error(21); // Procedure identifier can not be in an expression.
 			//Dong Shi, 10.29, copy (zjr 10.27) "call" work to here
 			//support parameters now //modified by zjr 17.10.27
 			getsym();
-			//Argument expression available now!//zjr 17.11.2
 			if (sym == SYM_LPAREN)
-			{	
-				mask *basemask;
-				basemask=(mask *)&table[position("/pbase")];
-				//gen(ASTO,0,basemask->address);	//store top to base    delete it zjr 12.13
+			{
+				int *paralist=nodeplist(id);	//get paralist	//zjr 11.17	//#Z14
+				int pnum=0;			//record parameters number
+				int papos,j,paramnum;
+				paramnum=nodeparam(id);
+				mask *pmask;
 
 				getsym();
-						
+				
 				if (sym != SYM_RPAREN)			//call pro()
 				{ 
-					symset s1;
+					symset s1 = NULL;		//error fixed when finishing callstack
 					while (sym != SYM_RPAREN)	//not ")"
 					{
-						if (sym == SYM_COMMA)
-						{	
+						if (sym == SYM_COMMA)	
+						{
 							getsym();
 							continue;
 						}
-						else
+						else					//#1
 						{
-							s1=createset(SYM_RPAREN,SYM_COMMA,SYM_NULL); //end when meet ")",","
-							expression(s1);		//analyse the expression in argument
-						}
+							//handle array type parameter	//zjr 11.17 //#Z14
+							if (paralist[pnum]==ID_ARRAY) //#2
+							{
+								papos=position(id);
+								if (papos==0)	error(11);	//undeclared
+								
+								else if (table[papos].kind==ID_PARRAY)
+								{
+									arr=(array *)&table[papos];
+									gen(LOD,level-arr->level,arr->address);			//load start address of array from stack
+									papos++;
+									dhead=(dimensionHead *)&table[papos];	//to get num of dimension
+									gen(LIT,0,dhead->depth);
+									for (j=0;j<(dhead->depth);++j)		//put dimensions to stack
+									{
+										papos++;
+										dim=(dimension *)&table[papos];
+										gen(LIT,0,dim->width);
+									}
+									pnum+=(dhead->depth+2);	
+									getsym();
+								}
+								else if (table[papos].kind==ID_ARRAY)
+								{
+									arr=(array *)&table[papos];
+									gen(LEA,level-arr->level,arr->address);
+									papos++;
+									dhead=(dimensionHead *)&table[papos];	//to get num of dimension
+									gen(LIT,0,dhead->depth);
+									for (j=0;j<(dhead->depth);++j)		//put dimensions to stack
+									{
+										papos++;
+										dim=(dimension *)&table[papos];
+										gen(LIT,0,dim->width);
+									}
+									pnum+=(dhead->depth+2);				
+									getsym();
+								}
+								else error(31);				//type mismatch
+							} //#2
+							//support ID_PVAR ZJR 12.14 #Z9
+							else if (paralist[pnum]==ID_PVAR)
+							{
+								if (sym == SYM_BITAND)
+								{
+									getsym();
+									papos=position(id);
+									if (papos==0)	error(11);	//undeclared
+									
+									else if (table[papos].kind==ID_PVAR) 
+									{//the variable to pass is a parameter variable
+										pmask=(mask *)&table[papos];
+										gen(LOD,level-pmask->level,pmask->address);
+										pnum++;
+									}
+									else if (table[papos].kind==ID_VARIABLE) 
+									{//the variable to pass is a normal variable
+										pmask=(mask *)&table[papos];
+										gen(LEA,level-pmask->level,pmask->address);
+										pnum++;
+									}
+									else error(31);	//type mismatch
+									getsym();
+								}//if sym_bitand
+								else 
+								{
+									error(31);	//type mismatch
+									getsym();
+								}
+							}
+							//variable
+							else
+							{
+								s1=createset(SYM_RPAREN,SYM_COMMA,SYM_NULL); //end when meet ")",","
+								expression(s1);		//analyse the expression in argument
+								pnum++;
+							}//else variable
+							if (pnum>paramnum)	//parameters not compatible 
+							{
+								error(31);
+								break;
+							}
+							
+						}//else not comma #1
 					}//while
 					//the while end means that sym==')'
 					destroyset(s1);
@@ -1742,9 +1827,8 @@ void statement(symset fsys)
 			}// if sym lparen
 			mk = (mask*) &table[i];
 			gen(CAL, level - mk->level, mk->address);
-			getsym();
-			return;
-		}
+		}//else if ID_PROCEDURE
+
 		//support ID_PRRAY //zjr //11.17 //#Z8
 		//support ID_PVAR ZJR 12.13 #Z5
 		else if (table[i].kind != ID_VARIABLE && table[i].kind != ID_ARRAY 
@@ -1840,6 +1924,11 @@ void statement(symset fsys)
 			mk = (mask*) &table[i];
 			gen(LOD,level-mk->level,mk->address);
 		}
+		//FOR NAKED PROCEDURE CALL ZJR 12.14 
+		else if (table[i].kind == ID_PROCEDURE)
+		{
+			;
+		}
 		else  	//id_variable
 		{		
 			mk = (mask*) &table[i];
@@ -1917,6 +2006,11 @@ void statement(symset fsys)
 			}//while
 			if(sym == SYM_BECOMES)
 				getsym();
+		}
+		//FOR NAKED PROCEDURE CALL ZJR 12.14 
+		else if (table[i].kind == ID_PROCEDURE)
+		{
+			;
 		}
 		else
 		{
