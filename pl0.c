@@ -498,6 +498,180 @@ void test(symset s1, symset s2, int n)
 //int dx;  // data allocation index
 //moved to pl0.h //zjr 11.17
 
+//added by ljq 12.14 for variable initializing
+void init_array(int btx, int depth, int bdx, int size)
+{
+	dimensionHead* dhead;
+	dimension* dim;
+	int currwidth, subSize;
+
+	dhead = (dimensionHead*) &table[btx];
+	depth ++;
+	if(sym == SYM_LBRACE)
+	{
+		dim = (dimension*) &table[btx + depth];
+		currwidth = 0;
+		subSize = size / dim->width;
+		if(depth > dhead->depth)
+		{
+			error(45);
+		}
+		getsym();
+		init_array(btx, depth, bdx, subSize);
+		currwidth ++;
+		bdx = bdx + subSize;
+		while(sym == SYM_COMMA)
+		{
+			getsym();
+			init_array(btx, depth, bdx, subSize);
+			currwidth ++;
+			bdx = bdx + subSize;
+			if(currwidth > dim->width)
+			{		//the initialization is too much
+				error(44);
+			}
+		}
+		if(sym == SYM_RBRACE)
+		{
+			getsym();
+		}
+		else
+		{
+			error(43);
+		}
+	}
+	else if (sym == SYM_NUMBER)
+	{
+		if(depth - 1 > dhead->depth)
+		{
+			printf("%d %d \n", depth, dhead->depth);
+			error(45);
+		}
+		Func->InitValue[Func->InitVarNum].value = num;
+		Func->InitValue[Func->InitVarNum].address = bdx;
+		Func->InitVarNum ++;
+		getsym();
+	}
+	else
+	{
+		error(41);
+	}
+}//init_array
+
+//move out the array part in enter() to simplify enter()
+void enter_array()
+{
+	array* arr;
+	dimensionHead* dhead;
+	dimension* dim;
+	int arraySize = 1;
+	int firstwidth, base_dx, base_tx, subSize;
+	int tag = 0; 			//whether there is initializing
+
+	arr = (array *) &table[tx];
+	arr->level = level;
+	arr->address = dx;
+	tx++;
+	base_tx = tx;
+	strcpy(table[tx].name, id);
+	table[tx].kind = ID_ARRAY;
+	dhead = (dimensionHead*) &table[tx];
+	dhead->depth = 0;
+	do
+	{
+		dhead->depth ++;
+		getsym();
+		if (sym == SYM_NUMBER)
+		{
+			tag = 1;
+			tx ++;
+			strcpy(table[tx].name, id);
+			table[tx].kind = ID_ARRAY;
+			dim = (dimension*) &table[tx];
+			dim->width = num;
+			arraySize = arraySize * num;
+			getsym();
+		}
+		else if (tag != 0 && sym != SYM_NUMBER)
+		{
+			error(28);
+		}
+		else if (tag == 0 && sym != SYM_NUMBER)
+		{
+			
+			tx ++;
+			strcpy(table[tx].name, id);
+			table[tx].kind = ID_ARRAY;
+			dim = (dimension*) &table[tx];
+			dim->width = 0;
+		}
+
+
+		if (sym == SYM_RSBRAC)
+		{
+			getsym();
+		}
+		else
+		{
+			error(29);
+		}
+	}
+	while(sym == SYM_LSBRAC);
+
+	if(sym == SYM_EQU)	//there is initializing
+	{
+		dim = (dimension*) &table[base_tx + 1];
+		if (dim->width == 0)
+		{
+			subSize = arraySize;
+		}
+		else
+		{
+			subSize = arraySize / dim->width;
+		}
+		initdepth = 0;
+		firstwidth = 0;				//used to count the first dimension if it's undefined
+		base_dx = dx;
+		getsym();
+		if (sym == SYM_LBRACE)
+		{
+			initdepth ++;
+			getsym();
+			init_array(base_tx, initdepth, base_dx, subSize);
+			firstwidth ++;
+			base_dx = base_dx + subSize;
+			while(sym == SYM_COMMA)
+			{
+				getsym();
+				init_array(base_tx, initdepth, base_dx, subSize);
+				firstwidth ++;
+				base_dx = base_dx + subSize;				
+				if(dim->width != 0 && firstwidth > dim->width)
+				{		//if the first dimension is defined but the initialization is too much
+					error(44);
+				}
+			}
+			if(sym == SYM_RBRACE)
+			{
+				getsym();
+			}
+			else
+			{
+				error(43);
+			}
+		}
+		else
+		{
+			error(42);
+		}
+		if (dim->width == 0)
+		{
+			arraySize = subSize * firstwidth;
+			dim->width = firstwidth;
+		}
+	}
+	dx = dx + arraySize;
+}//enter_array
 
 // enter object(constant, variable or procedre) into table.
 void enter(int kind)
@@ -560,6 +734,22 @@ void enter(int kind)
 		mk = (mask*) &table[tx];
 		mk->level = level;
 		mk->address = dx++;
+		//ljq added 12.14 for variable initializing
+		if(sym == SYM_EQU)
+		{			
+			Func->InitValue[Func->InitVarNum].address = dx - 1;
+			getsym();
+			if(sym == SYM_NUMBER)
+			{
+				Func->InitValue[Func->InitVarNum].value = num;
+				getsym();
+			}
+			else
+			{
+				error(2);
+			}
+			Func->InitVarNum ++;
+		}
 		break;
 	case ID_PROCEDURE:
 		strcpy(funcname, id);	//record function name temporily //added by zjr 17.10.27
@@ -567,44 +757,7 @@ void enter(int kind)
 		mk->level = level; 
 		break;
 	case ID_ARRAY:					//<===================added for array===============
-		arr = (array *) &table[tx];
-		arr->level = level;
-		arr->address = dx;
-		tx++;
-		strcpy(table[tx].name, id);
-		table[tx].kind = kind;
-		dhead = (dimensionHead*) &table[tx];
-		dhead->depth = 0;
-		do
-		{
-			dhead->depth ++;
-			getsym();
-			if (sym == SYM_NUMBER)
-			{
-				tx ++;
-				strcpy(table[tx].name, id);
-				table[tx].kind = kind;
-				dim = (dimension*) &table[tx];
-				dim->width = num;
-				arraySize = arraySize * num;
-				getsym();
-			}
-			else
-			{
-				error(28);
-			}
-
-			if (sym == SYM_RSBRAC)
-			{
-				getsym();
-			}
-			else
-			{
-				error(29);
-			}
-		}
-		while(sym == SYM_LSBRAC);
-		dx = dx + arraySize;
+		enter_array();
 		break;
 	} // switch
 } // enter
@@ -2967,6 +3120,9 @@ void initchainlist()
 	strcpy(stlist.funcname,"\0");	//zjr 11.20
 	//ljq 12.10 for callstack
 	stlist.address = 0;
+	//ljq 12.14 for variable initializing
+	memset(stlist.InitValue, 0, 100 * sizeof(ValtoAddr));
+	stlist.InitVarNum = 0;
 } 
 
 //enter parameters to symbol table
@@ -3103,6 +3259,9 @@ void nodeinsert()
 		strcpy(P->paraname[i], tmpparaname[i]);
 	}
 	P->paranum = tmpparanum;
+	//ljq 12.14 for variable initializing
+	memset(P->InitValue, 0, 100 * sizeof(ValtoAddr));
+	P->InitVarNum = 0;
 	
 	//add paralist to new node	//zjr 11.17 	//#Z13
 	paralist=P->paralist;
@@ -3456,6 +3615,13 @@ void block(symset fsys)
 	
 	Func-> address = cx;		//ljq 17.12.10 for callstack
 	gen(INT, 0, block_dx);
+	//ljq 12.14 for initializing variables
+	int j;
+	for (j = 0; j < Func->InitVarNum; ++j)
+	{
+		gen(LIT, 0, Func->InitValue[j].value);
+		gen(STO, 0, Func->InitValue[j].address);
+	}
 	//gen instructions to load arguments //zjr 17.11.2
 	int i;
 	for (i=0;i<Func->funcparam;++i)

@@ -204,7 +204,7 @@ char* err_msg[] =
 /* 31 */    "incompatible type!",	//added by zjr //11.7 //#Z9
 /* 32 */    "There are too many levels.",
 /* 33 */    "Procedure not found!",	//added by zjr //11.7 //#Z9
-/* 34 */    "Has been declared!"	//zjr //11.21
+/* 34 */    "Has been declared!",	//zjr //11.21
 //Dong Shi, 12.1, Add some error about printf
 /* 35 */	"( expected.",
 /* 36 */	"String format expected.",
@@ -214,7 +214,13 @@ char* err_msg[] =
 //Dong Shi, 12.3, Add more error about ++/--
 /* 39 */	"Opreation increase or decrease must be operated on a variable.",
 //zjr 12.8 incorrect ?: expression //#Z3
-/* 40 */    ": expected in ?: expression."
+/* 40 */    ": expected in ?: expression.",
+//ljq 12.14 for variable initializing
+/* 41 */	"Uncompleted initializing!",
+/* 42 */	"Missing '{'",
+/* 43 */	"Missing '}'",
+/* 44 */	"Too much terms!",
+/* 45 */	"Too much '{'"
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -340,6 +346,14 @@ typedef struct
 	short address;
 } mask;
 
+//ljq added 12.14 for variable initializing
+typedef struct ValtoAddr
+{
+	int value;
+	short address;
+}ValtoAddr;
+int initdepth;
+
 FILE* infile;
 
 //to store symbol table list  //added by zjr 17.10.27
@@ -357,6 +371,9 @@ typedef struct stnode
 	int address;
 	char paraname[10][100];
 	int paranum;
+	//ljq added 12.14 for variable initialing
+	ValtoAddr InitValue[100];
+	int InitVarNum;
 }stnode;
 
 stnode stlist;
