@@ -447,4 +447,7 @@ void genListChainAssign();
 //zjr 12.13 for list assignment
 void genFirstAssignment(int rank,int assignop);
 int ListChainAssignOp[128];
+
+//zjr 12.15 fix bug in IF
+int symforback=0;
 // EOF PL0.h

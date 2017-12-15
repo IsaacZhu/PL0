@@ -1,0 +1,25 @@
+var i,j;
+begin
+	i:=3;
+	if (i>4){
+		j:=3;
+		if (j>2){
+			j:=5;
+		}
+	}
+	else if (i>7){
+		j:=6;
+	}
+	else if (i>2){
+		j:=8;
+	}
+	else{
+		j:=10;
+	}
+	printf("i:@0,j:@1\n",i,j);
+
+	if (j==8){
+		i:=20;
+	}
+	printf("i:@0,j:@1\n",i,j);
+end.

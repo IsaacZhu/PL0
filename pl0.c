@@ -117,6 +117,13 @@ void getch(void)
 // gets a symbol from input stream.
 void getsym(void)
 {
+	//ZJR 12.15
+	if (symforback!=0)	//go back for one sym
+	{
+		sym = symforback;
+		symforback=0;	//reset it
+		return;
+	}
 	int i, k;
 	char a[MAXIDLEN + 1];
 	char lastChar;
@@ -2087,53 +2094,11 @@ void statement(symset fsys)
 		gen(JZ, 0, 0);
 		destroyset(set1);
 		//destroyset(set);	//why? zjr11.27
-		if (sym == SYM_THEN)
-		{
-			getsym();
-		}
-		else
-		{
-			error(16); // 'then' expected.
-		}
-		//cx1 = cx;
-		//gen(JPC, 0, 0);
+
 		statement(fsys);
 		getsym();
-		if(sym==SYM_ELSE_IF)//add by ywt,deal with SYM_ELSE_IF,2017.10.20
-        {
-            getsym();
-			condition(set);//
-		    if (sym == SYM_THEN)
-		    {
-			   getsym();
-		    }
-		    else
-		    {
-				error(16); // 'then' expected.
-		    }
-            cx4=cx;
-            //code[cx1].a=cx+1;
-            //gen(JPC,0,0);
-			code[false_out].a = cx + 1;
-            gen(JZ,0,0);
-            statement(fsys);
-			getsym();   
-			if(sym==SYM_ELSE) 
-           	{
-            	getsym();
-            	cx5=cx;
-	            code[cx4].a=cx+1;
-	            gen(JMP,0,0);
-	            statement(fsys);
-	            code[cx5].a=cx;                                                  
-           	}     
-		   	else
-		   	{
-		   		code[cx4].a=cx;
-		   	}
-		   //Endcondition(code[cx4].a);      //用于回填JMP_and跳转地址                                               
-        }
-		else if(sym==SYM_ELSE) //add by ywt,deal with SYM_ELSE,2017.10.20
+		
+		if(sym==SYM_ELSE) //add by ywt,deal with SYM_ELSE,2017.10.20
         {
             getsym();
             cx3=cx;
@@ -2146,6 +2111,8 @@ void statement(symset fsys)
 		else
 		{
 			//code[cx1].a = cx;
+			symforback=sym;//ZJR 12.15
+			sym=SYM_SEMICOLON;
 			code[false_out].a = cx;
 		}
 		//Endcondition(code[cx1].a);    //用于回填JMP_and跳转地址
@@ -2326,7 +2293,8 @@ void statement(symset fsys)
 		destroyset(set1);
 		destroyset(set);
 		if (sym == SYM_RBRACE)
-		     getsym();
+		     //getsym();
+			sym = SYM_SEMICOLON;//Little trick ZJR 12.15
 		else
 		{
 			error(17); // ';' or 'end' expected.
