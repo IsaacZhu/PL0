@@ -892,6 +892,10 @@ void factor(symset fsys)
 	int thisLevel;
 	int thisAddress;
 
+	//ZJR 12.15  #Z7
+	symset s2;
+	int pprocParameterNum=0;
+
 	//Dong Shi, 10.29, disable "factor cannot appear without a statement" check
 	//test(facbegsys, fsys, 24); // The symbol can not be as the beginning of an expression.
 
@@ -1030,6 +1034,62 @@ void factor(symset fsys)
 											getsym();
 										}
 									}
+									//handle parameter procedure #Z8 and #Z9 ZJR 12.15
+									else if (paralist[pnum]==ID_PPROC)
+									{
+										if (sym == SYM_TIMES)
+										{
+											getsym();
+											if (sym == SYM_IDENTIFIER)
+											{
+												papos=position(id);
+												if (papos==0)	error(11);	//undeclared
+												else if (table[papos].kind == ID_PROCEDURE)
+												{
+													gen(PUSHB,0,0); //push b(access chain)
+													pmask=(mask *)&table[papos];
+													gen(LIT,0,pmask->address);//pc
+													pnum+=2;
+												}
+												else if (table[papos].kind == ID_PPROC)
+												{
+													pmask=(mask *)&table[papos];
+													gen(LOD,level-pmask->level,pmask->address);	//access chain
+													pmask=(mask *)&table[papos+1];				//pc
+													gen(LOD,level-pmask->level,pmask->address);
+													pnum+=2;
+												}
+												else 
+												{
+													error(31);
+													getsym();
+												}
+												getsym();
+												if (sym == SYM_LPAREN)
+												{
+													getsym();
+													while (sym != SYM_RPAREN)
+													{
+														s2=createset(SYM_RPAREN,SYM_COMMA,SYM_NULL); //end when meet ")",","
+														expression(s2);
+														pnum++;
+														if (sym == SYM_COMMA) getsym();	//不做错误检测了，大家好自为之
+													}
+													getsym();
+												}
+											}
+											else 
+											{
+												error(31);
+												getsym();
+											}
+										}
+										else 
+										{
+											error(31);	//type mismatch
+											getsym();
+										}
+									}//else if ID_PPROC
 									//variable
 									else
 									{
@@ -1145,6 +1205,28 @@ void factor(symset fsys)
 					mk = (mask*) &table[i];
 					gen(LOD, level - mk->level, mk->address);
 					gen(LODAR,0,0);	
+					break;
+				//Add parameter procedure ZJR 12.15 #Z7
+				case ID_PPROC:
+					mk = (mask *) &table[i];
+					gen(LOD,level - mk->level,mk->address);//access chain
+					mk = (mask *) &table[i+1];
+					gen(LOD,level - mk->level,mk->address);//pc
+					getsym();
+					if (sym == SYM_LPAREN)	//这里不做错误检测了，大家好自为之
+					{
+						getsym();
+						while (sym != SYM_RPAREN)
+						{
+							s2=createset(SYM_RPAREN,SYM_COMMA,SYM_NULL); //end when meet ")",","
+							expression(s2);
+							pprocParameterNum++;
+							if (sym == SYM_COMMA) getsym();	//同上，大家好自为之
+						}
+						getsym();
+						gen(PCAL,0,pprocParameterNum);
+						pprocParameterNum=0;
+					}//if LPAREN
 					break;
 				} // switch
 			}
@@ -1855,6 +1937,10 @@ void statement(symset fsys)
 		SYM_MODAS,SYM_ADDAS,SYM_SUBAS,SYM_LAS,SYM_RAS,
 		SYM_ANDAS,SYM_XORAS,SYM_ORAS);
 
+	//ZJR 12.15 #Z10 for parameter procedure
+	int pprocParameterNum;
+	symset s2;
+
 	if (sym == SYM_IDENTIFIER)
 	{ // variable assignment
 		mask* mk;
@@ -1966,6 +2052,62 @@ void statement(symset fsys)
 									getsym();
 								}
 							}
+							//handle parameter procedure #Z11 and #Z12 ZJR 12.15
+							else if (paralist[pnum]==ID_PPROC)
+							{
+								if (sym == SYM_TIMES)
+								{
+									getsym();
+									if (sym == SYM_IDENTIFIER)
+									{
+										papos=position(id);
+										if (papos==0)	error(11);	//undeclared
+										else if (table[papos].kind == ID_PROCEDURE)
+										{
+											gen(PUSHB,0,0); //push b(access chain)
+											pmask=(mask *)&table[papos];
+											gen(LIT,0,pmask->address);//pc
+											pnum+=2;
+										}
+										else if (table[papos].kind == ID_PPROC)
+										{
+											pmask=(mask *)&table[papos];
+											gen(LOD,level-pmask->level,pmask->address);	//access chain
+											pmask=(mask *)&table[papos+1];				//pc
+											gen(LOD,level-pmask->level,pmask->address);
+											pnum+=2;
+										}
+										else 
+										{
+											error(31);
+											getsym();
+										}
+										getsym();
+										if (sym == SYM_LPAREN)
+										{
+											getsym();
+											while (sym != SYM_RPAREN)
+											{
+												s2=createset(SYM_RPAREN,SYM_COMMA,SYM_NULL); //end when meet ")",","
+												expression(s2);
+												pnum++;
+												if (sym == SYM_COMMA) getsym();	//不做错误检测了，大家好自为之
+											}
+											getsym();
+										}
+									}
+									else 
+									{
+										error(31);
+										getsym();
+									}
+								}
+								else 
+								{
+									error(31);	//type mismatch
+									getsym();
+								}
+							}//else if ID_PPROC
 							//variable
 							else
 							{
@@ -1988,6 +2130,30 @@ void statement(symset fsys)
 			mk = (mask*) &table[i];
 			gen(CAL, level - mk->level, mk->address);
 		}//else if ID_PROCEDURE
+
+		//Add parameter procedure ZJR 12.15 #Z10
+		else if(table[i].kind ==  ID_PPROC)
+		{
+			mk = (mask *) &table[i];
+			gen(LOD,level - mk->level,mk->address);//access chain
+			mk = (mask *) &table[i+1];
+			gen(LOD,level - mk->level,mk->address);//pc
+			getsym();
+			if (sym == SYM_LPAREN)	//这里不做错误检测了，大家好自为之
+			{
+				getsym();
+				while (sym != SYM_RPAREN)
+				{
+					s2=createset(SYM_RPAREN,SYM_COMMA,SYM_NULL); //end when meet ")",","
+					expression(s2);
+					pprocParameterNum++;
+					if (sym == SYM_COMMA) getsym();	//同上，大家好自为之
+				}
+				getsym();
+				gen(PCAL,0,pprocParameterNum);
+				pprocParameterNum=0;
+			}//if LPAREN
+		}//else if ID_PPROC
 
 		//support ID_PRRAY //zjr //11.17 //#Z8
 		//support ID_PVAR ZJR 12.13 #Z5
@@ -3109,6 +3275,32 @@ void genListAssign(int left, int right,int assignop)
 	}//while
 }//genListAssign
 
+//clear items with same name in symbol table ZJR 12.15  #Z6
+void symboltableclear(char *name)
+{
+	int pos=0;
+	pos = position(name);
+	mask *mk;
+	while(pos!=0 ){
+		strcpy(table[pos].name , "/covered");
+		/*switch (table[pos].kind)
+		{
+			case ID_VARIABLE:
+			case ID_ARRAY:
+			case ID_PARRAY:
+			case ID_PVAR:
+			case ID_PPROC:
+			case ID_CONSTANT:
+				mk=(mask *)&table[pos];
+				if (mk->level == level)
+				{
+
+				}
+		}*/
+		pos = position(name);
+	}
+}
+
 //operation to chain list //added by zjr 17.10.27
 void initchainlist()
 {
@@ -3176,6 +3368,24 @@ void param_enter()
 				mk->level=level;
 				mk->address=dx++;	//data +1
 			} 
+			//Add parameter procedure(ID_PPROC) ZJR 12.15 #Z5
+			else if (tmpparam[i].kind == ID_PPROC)
+			{
+				//for access chain
+				strcpy(table[++tx].name,tmpparam[i].name);
+				table[tx].kind=ID_PPROC;
+				mk=(mask *)&table[tx];
+				mk->level=level;
+				mk->address=dx++;	//data +1
+
+				++i;
+				//for procedure's addr
+				strcpy(table[++tx].name,tmpparam[i].name);
+				table[tx].kind=ID_VARIABLE;
+				mk=(mask *)&table[tx];
+				mk->level=level;
+				mk->address=dx++;	//data +1
+			}
 			//it's ID_VARAIBLE
 			else
 			{
@@ -3221,6 +3431,24 @@ void param_enter()
 				mk->level=level;
 				mk->address=dx++;
 			}
+			//Add parameter procedure(ID_PPROC) ZJR 12.15 #Z5
+			else if (tmpparam[i].kind == ID_PPROC)
+			{
+				//for access chain
+				symboltableclear(tmpparam[i].name);
+				strcpy(table[++tx].name,tmpparam[i].name);
+				table[tx].kind=ID_PPROC;
+				mk=(mask *)&table[tx];
+				mk->level=level;
+				mk->address=dx++;	//data +1
+				
+				++i;
+				//for procedure's addr
+				strcpy(table[++tx].name,tmpparam[i].name);
+				table[tx].kind=ID_VARIABLE;
+				mk=(mask *)&table[tx];
+				mk->level=level;
+			}//ID_PPROC
 			else	//It's variable.Cover it!
 			{
 				table[pos].kind=ID_VARIABLE;
@@ -3518,6 +3746,60 @@ void block(symset fsys)
 								getsym();
 							}
 						}
+						//add *func as parameter ZJR 12.15 #Z4
+						else if (sym == SYM_TIMES)
+						{
+							getsym();
+							if (sym == SYM_IDENTIFIER)
+							{
+								strcpy(tmpparam[funcparam].name,id);
+								char str2[100]="*";
+								strcat(str2,id);
+								strcat(str2,"ebp");
+								strcpy(tmpparaname[tmpparanum], str2);	//ljq 12.10 for callstack
+								++tmpparanum;	//ljq 12.10 for callstack
+
+								char str3[100]="*";
+								strcat(str3,id);
+								strcat(str3,"addr");
+								strcpy(tmpparaname[tmpparanum], str3);	//ljq 12.10 for callstack
+								++tmpparanum;
+								tmpparam[funcparam].kind=ID_PPROC;	//for access chain
+								++funcparam;
+
+								strcpy(tmpparam[funcparam].name, str2);
+								tmpparam[funcparam].kind=ID_VARIABLE;	//for func's addr
+								++funcparam;
+
+								getsym();
+								if (sym == SYM_LPAREN)
+								{
+									getsym();
+									while (sym != SYM_RPAREN)
+									{
+										if (sym == SYM_IDENTIFIER)	//心累了，暂时只考虑变量吧
+										{
+											strcpy(tmpparam[funcparam].name,id);
+											strcpy(tmpparaname[tmpparanum], id);	//ljq 12.10 for callstack
+											++tmpparanum;	//ljq 12.10 for callstack
+											tmpparam[funcparam].kind=ID_VARIABLE;
+											++funcparam;
+											getsym();
+										}
+										else if (sym == SYM_COMMA)
+										{
+											getsym();
+										}
+									}//while RPAREN
+									if (sym == SYM_RPAREN) getsym();
+								}//SYM_LPAREN
+							}//SYM_IDENTIFIRE(funcname)
+							else
+							{
+								error(31);
+								getsym();
+							}
+						}//else if SYM_TIMES
 						else if (sym == SYM_COMMA)
 						{
 							getsym();	//next sym
@@ -3971,6 +4253,20 @@ void interpret()
 				}
 			} while (strcmp(upfunc->funcname, "main") != 0);
 			printf("\n");
+			break;
+		//Add PCAL(n) for parameter procedure ZJR 12.15 #Z3
+		//i.a is the distance from stack top to parameter's ebp and pc 
+		case PCAL:
+			stack[top + 1] = stack[top-i.a-1];// assess chain
+			// generate new block mark
+			stack[top + 2] = b;	//ebp (control chain)
+			stack[top + 3] = pc;	//pc
+			b = top + 1;
+			pc = stack[top-i.a];
+			break;
+		//Add PUSHB that push b to stack top ZJR 12.15 #Z3
+		case PUSHB:
+			stack[++top]=b;
 			break;
 		} // switch
 	}

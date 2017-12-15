@@ -120,10 +120,11 @@ enum symtype
 //Add ID_PARRAY for array arguments passing //zjr //11.7 //#Z4
 //Dong Shi, 12.12, Add ID_LIST
 //Add ID_PVAR for varaible parameter 12.13 #Z1
+//Add ID_PPROC for procedure used as parameter ZJR 12.15 #Z1 
 enum idtype
 {
 	ID_CONSTANT, ID_VARIABLE, ID_PROCEDURE, ID_POINTER, 
-	ID_ARRAY,ID_PARRAY, ID_LIST, ID_PVAR
+	ID_ARRAY,ID_PARRAY, ID_LIST, ID_PVAR, ID_PPROC
 };
 
 //add PAS: for parameter pass //modified by zjr 17.10.27
@@ -135,10 +136,11 @@ enum idtype
 //Dong Shi, 12.1, Add OUTS op
 //Dong Shi, 12.3, Add IN op
 //ZJR add LODST POP, and EXC 12.9 #Z15
+//Add PCAL(n) and PUSHB for parameter procedure  ZJR 12.15 #Z2
 enum opcode
 {
 	LIT, OPR, LOD, STO, CAL, INT, JMP, JPC,JZ,JNZ,RET,APOP,ASTO,LODA,LEA, LODAR, STOAR, OUTS, IN,
-	LODST,POP,EXC, CALST, CMP, SWIT
+	LODST,POP,EXC, CALST, CMP, SWIT, PCAL, PUSHB
 };
 
 //Dong Shi, 11.22, Add op OPR_INC and OPR_DEC
@@ -321,11 +323,12 @@ char csym[NSYM + 1] =
 //Dong Shi, 12.1, Add OUTS
 //Dong Shi, 12.3, Add IN
 //ZJR 12.9 ADD LODST AND POP AND EXC #Z15
-#define MAXINS   25
+//Add PCAL(n) and PUSHB for parameter procedure for ZJR 12.15 #Z2
+#define MAXINS   27
 char* mnemonic[MAXINS] =
 {
 	"LIT", "OPR", "LOD", "STO", "CAL", "INT", "JMP", "JPC","JZ","JNZ", "RET","APOP","ASTO","LODA", "LEA", "LODAR", "STOAR", "OUTS", "IN",
-	"LODST","POP","EXC", "CALST","CMP","SWIT"
+	"LODST","POP","EXC", "CALST","CMP","SWIT","PCAL","PUSHB"
 };
 
 typedef struct
