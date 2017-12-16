@@ -34,7 +34,7 @@
 
 #### [13.随机数的实现](#13.随机数的实现)
 
-#### 14.callstack的实现
+#### [14.callstack的实现](#14.callstack的实现)
 
 #### [15.条件运算符，位移运算的原理及实现](#15.条件运算符，位移运算的原理及实现)
 
@@ -47,6 +47,8 @@
 #### [19.列表式赋值的原理及实现](#19.列表式赋值的原理及实现)
 
 #### [20.变量引用传参的原理及实现](#20.变量引用传参的原理及实现)
+
+
 
 
 
@@ -1166,7 +1168,89 @@ random 可以为无参或有参函数，如无参则默认 %INT_MAX，否则取�
 
 ## 14.callstack的实现
 
+### 14.1.实现的功能
 
+添加了一条`callstack`语句，可以在运行过程中打印样例程序的调用栈信息。使用规则如下：
+
+```c
+	...
+	statement1;
+	callstack;
+	statement2;
+	...
+```
+
+### 14.2.实现的原理
+
+1. 产生式如下：
+
+   ```c
+   statement	->	...
+   			->	'callstack'
+     			->	...
+   ```
+
+2. 打印原理：从当前函数的`bp`沿着调用链上溯到`main`，期间通过上溯过程中的当前pc来确定函数名及相关的信息。
+
+### 14.3.实现的思路
+
+由于每次调用一个函数时，都会将参数、父函数的基址、调用时的父函数pc压栈，因此打印过程中从当前函数的`bp`沿着调用链上溯到`main`即可。
+
+这个过程中需要确定函数名以及函数的参数名，由于朱嘉润同学之前在实现函数参数传递的时候添加了一个存储函数的函数名及其他相关信息的数据结构`stnode`，因此这次只需在其中添加存储参数名、参数数目和函数在代码段中的地址即可。如下：
+
+```c
+typedef struct stnode
+{
+	...
+	//ljq added 12.10 for callstack
+	int address;
+	char paraname[10][100];
+	int paranum;
+	...
+}stnode;
+```
+
+在上溯过程中，由于栈内存储了父函数调用时的`pc`，而每个函数生成的指令中只有一条`INT`而且是在第一条，因此可以从父函数的调用时的`pc`沿着代码段上溯到第一个`INT`即为该父函数的代码段地址。然后再到`stnode`的链表中遍历，即可获取函数相关的信息。
+
+### 14.4.具体实现
+
+1. pl0.h中：
+
+   1. 在`symtype`中添加`SYM_CALST`用于识别`callstack`，关键字集`word`中添加`"callstack"`，关键字代号集`wsym`中添加`SYM_CALST`，指令集`opcode`中添加指令`CALST`，指令符号集`mnemonic`中添加`CALST`。
+
+   2. 在`stnode`中定义中添加相关元素如上。
+
+   3. 添加暂存参数名的字符串数组，参数数量，以及用于在将数组参数中的数字转化为字符串时的字符数组buffer：
+
+      ```c
+      //===========for callstack*/
+      char tmpparaname[10][100];
+      int tmpparanum;
+      char numstring[10];
+      ```
+
+2. pl0.c中：
+
+   1. 在`statement`函数中添加`callstack`分支，如下：
+
+      ```c
+      //lijiquan, 12.9, Add callstack
+      	else if (sym == SYM_CALST)
+      	{
+      		gen(CALST, 0, 0);
+      		getsym();
+      	}
+      ```
+
+   2. 在`initchainlist`, `nodeinsert`, `block`中添加相应的位置添加对`stnode`中新增元素的相应处理
+
+   3. 添加函数`ntos`用于将分析数组参数时维度中的数字转化成字符串放到参数名数组中。
+
+   4. 在`interpret`中添加`CALST`分支，用于处理该指令相关内容。具体原理见上
+
+### 14.5效果
+
+![](pictures/03.png)
 
 ---
 
@@ -1797,3 +1881,126 @@ callpara -> expression
 ### 20.6 效果
 
 ![Jietu20171214-195103@2x](/Users/zhujiarun/Resources/编译原理/report/pic/Jietu20171214-195103@2x.jpg)
+
+
+
+## 22.变量初始化的原理及实现
+
+### 22.1实现的功能
+
+1. 添加了普通变量在声明时的初始化
+
+   ```pascal
+   var i, j = 4, m;
+   ```
+
+2. 添加了数组变量在声明时的初始化，并且声明时可以缺省第一维，通过初始化内第一层元素个数来确定第一维大小
+
+   ```pascal
+   var a[][2] = {{1, 2}, {3, 4}}, b[3] = {1, 2, 3};
+   ```
+
+### 22.2实现的原理
+
+修改后的产生式如下：
+
+```c
+declaration		->	vardeclaration
+				|	constdeclaration
+				|...
+
+vardeclaration	->	'var' variable
+
+variable		->	identifier idsucc ',' variable
+
+idsucc			->	varInit
+				|	'[' number ']' idsucc arrayInit
+
+varInit			->	epsilon
+				|	'=' number
+
+arrayInit		->	epsilon
+				|	'=' '{' arrayInitList '}'
+				|	'='	'{' '}'
+
+arrayInitList	->	arraySubInit
+  				|	arrayInitList ',' arraySubInit
+
+arraySubInit	->	number
+				|	{arrayInitList}
+				|	'{' '}'
+```
+
+### 22.3实现的思路
+
+1. 为了能准确的给变量进行初始化，在这里采用在函数最开始生成一系列`LIT`和`STO`指令来进行初始化。
+
+2. 由于变量初始化的语法分析实在生成该函数的`INT`指令之前，这样就有两个方案：
+
+   - 先生成指令，再将指令后移；
+   - 不生成指令，仅记录指令的主要信息，即变量地址和初始值，然后再在生成`INT`指令之后，根据相关信息来生成指令串
+
+   考虑到变量的声明后面还有函数的声明，这样指令的后移会变得异常的麻烦，因此采取第二种方案。
+
+3. 由于我们写的`pl0`体量较小，因此记录信息用一个比较大的数组就可以胜任了。
+
+### 22.4具体实现
+
+1. pl0.h中：
+
+   1. 添加一个存储初始化信息的结构体`VartoAddr`：
+
+      ```c
+      //ljq added 12.14 for variable initializing
+      typedef struct ValtoAddr
+      {
+      	int value;
+      	short address;
+      }ValtoAddr;
+      ```
+
+   2. 在`stnode`数据结构中添加如下元素用来存储函数的初始化信息：
+
+      ```c
+      typedef struct stnode
+      {
+        	...
+      	//ljq added 12.14 for variable initialing
+      	ValtoAddr InitValue[100];
+      	int InitVarNum;
+      }stnode;
+      ```
+
+   3. 添加相关的错误提示信息
+
+2. pl0.c中：
+
+   1. 在`block`中生成`INT`语句后添加生成初始化指令串的语句：
+
+      ```c
+      	//ljq 12.14 for initializing variables
+      	int j;
+      	for (j = 0; j < Func->InitVarNum; ++j)
+      	{
+      		gen(LIT, 0, Func->InitValue[j].value);
+      		gen(STO, 0, Func->InitValue[j].address);
+      	}
+      ```
+
+   2. 修改`initchainlist`和`nodeinsert`以适配修改过的`stnode`
+
+   3. 在`enter`中添加对`ID_VAR`的初始化语句，并将`ID_ARRAY`分支外提为`enter_array`以简化`enter`
+
+   4. 在`enter_array`内添加初始化语句，并添加用于数组初始化的语法分析递归调用的函数`init_array`
+
+3. 语义错误输出与恢复
+
+   1. 在pl0.h中添加了相应的错误信息，并在分析时遇到相应的问题时报错，主要是以下几种错误：
+      - 符号错误
+      - 维度比声明的大
+      - 维宽比声明的宽
+   2. 由于错误恢复的本质是抛弃现有分析，往后找，一直到一个正确的符号重新分析。但是这里后面的符号与前面是有很强依赖的。如果发生错误，直接抛弃，那么是很有可能产生更多的错误的，这样就违背了错误恢复的本意。另一方面，初始化的错误会对后面造成很多影响，不是可以忽略的。因此这里没有做错误恢复。
+
+### 22.5效果
+
+![](pictures/04.png)
