@@ -112,7 +112,10 @@ enum symtype
 	SYM_LIST,
 	SYM_LLBRC,
 	SYM_LRBRC,
-	SYM_CONTINUE
+	SYM_CONTINUE,
+
+	//Dong Shi, 12.16, Add sym ellipsis
+	SYM_ELLIPSIS
 };
 
 //Add ID_POINTER //zjr 17.11.2 
