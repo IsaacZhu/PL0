@@ -759,6 +759,12 @@ void enter(int kind)
 	case ID_ARRAY:					//<===================added for array===============
 		enter_array();
 		break;
+	//ZJR 12.15 support ID_PVAR
+	case ID_PVAR:
+		mk = (mask*) &table[tx];
+		mk->level = level;
+		mk->address = dx++;
+		break;
 	} // switch
 } // enter
 
@@ -833,6 +839,10 @@ void constdeclaration()
 	 // There must be an identifier to follow 'const', 'var', or 'procedure'.
 } // constdeclaration
 
+
+//ZJR 12.15 for ID_PVAR intialization
+void factor(symset fsys);
+
 //////////////////////////////////////////////////////////////////////
 void vardeclaration(void)
 {
@@ -847,6 +857,17 @@ void vardeclaration(void)
 		{
 			enter(ID_VARIABLE);
 		}
+	}
+	//ZJR 12.15 support ID_PVAR
+	else if (sym == SYM_BITAND)
+	{
+		getsym();
+		if (sym == SYM_IDENTIFIER)
+		{
+			enter(ID_PVAR);
+			getsym();
+		}
+		else error(4);
 	}
 	else
 	{
@@ -1023,6 +1044,13 @@ void factor(symset fsys)
 											{//the variable to pass is a normal variable
 												pmask=(mask *)&table[papos];
 												gen(LEA,level-pmask->level,pmask->address);
+												pnum++;
+											}
+											else if (table[papos].kind==ID_ARRAY||table[papos].kind==ID_PARRAY) 
+											{//the variable to pass is a normal variable
+												s1=createset(SYM_RPAREN,SYM_COMMA,SYM_NULL); //end when meet ")",","
+												expression(s1);
+												cx--;	//delete LODAR
 												pnum++;
 											}
 											else error(31);	//type mismatch
@@ -1941,6 +1969,10 @@ void statement(symset fsys)
 	int pprocParameterNum;
 	symset s2;
 
+	//ZJR for ID_PVAR intialization
+	int ipos=0;
+	mask* imk;
+
 	if (sym == SYM_IDENTIFIER)
 	{ // variable assignment
 		mask* mk;
@@ -2036,15 +2068,26 @@ void statement(symset fsys)
 										pmask=(mask *)&table[papos];
 										gen(LOD,level-pmask->level,pmask->address);
 										pnum++;
+										getsym();
 									}
 									else if (table[papos].kind==ID_VARIABLE) 
 									{//the variable to pass is a normal variable
 										pmask=(mask *)&table[papos];
 										gen(LEA,level-pmask->level,pmask->address);
 										pnum++;
+										getsym();
 									}
-									else error(31);	//type mismatch
-									getsym();
+									else if (table[papos].kind==ID_ARRAY||table[papos].kind==ID_PARRAY) 
+									{//the variable to pass is a normal variable
+										s1=createset(SYM_RPAREN,SYM_COMMA,SYM_NULL); //end when meet ")",","
+										expression(s1);
+										cx--;	//delete LODAR
+										pnum++;
+									}
+									else {
+										error(31);	//type mismatch
+										getsym();
+									}
 								}//if sym_bitand
 								else 
 								{
@@ -2843,6 +2886,52 @@ void statement(symset fsys)
 		
 		genListChainAssign();
 	}
+	//support ID_PVAR
+	else if(sym == SYM_BITAND)
+	{
+		getsym();
+		if (sym == SYM_IDENTIFIER)
+		{
+			i=position(id);
+			if (table[i].kind != ID_PVAR){
+				error(31);
+				getsym();
+			}
+			else
+			{
+				getsym();
+				if (sym == SYM_BECOMES)
+				{
+					getsym();
+					if (sym == SYM_IDENTIFIER)
+					{
+						ipos=position(id);
+						if (table[ipos].kind == ID_VARIABLE)
+						{
+							imk=(mask*)&table[ipos];
+							gen(LEA,level-imk->level,imk->address);	//get address
+							imk=(mask*)&table[i];
+							gen(STO,level-imk->level,imk->address);	//store address
+							getsym();
+						}
+						else if (table[ipos].kind == ID_PVAR)
+						{
+							imk=(mask*)&table[ipos];
+							gen(LOD,level-imk->level,imk->address);	//get address
+							imk=(mask*)&table[i];
+							gen(STO,level-imk->level,imk->address);	//store address
+							getsym();
+						}
+						else
+						{
+							error(12);
+							getsym();
+						}
+					}// if sym_identifier
+				}//if sym_becomes
+			}//else
+		}//if sym_identifier
+	}//else if SYM_BITAND
 	//Dong Shi, 12.3, make it possible let a factor be a statement
 	else
 	{

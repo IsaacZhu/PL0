@@ -1,0 +1,19 @@
+var i = 10, j = 20,m[2],&k;//k为引用型变量
+procedure swap(&a,&b);
+var c;
+begin 
+    c := a; a := b; b := c;
+end;
+
+begin
+
+&k := j;
+swap(&i,&j);
+printf("@0 @1\n",i,j);  //20 10
+swap(&i,&k);    
+printf("@0 @1\n",i,k);  //10 20        
+m[1] := j;
+swap(&i,&m[1]);
+printf("@0 @1\n",i,m[1]); //20 10
+
+end.
