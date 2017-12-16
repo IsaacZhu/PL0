@@ -8,7 +8,7 @@ begin
                 {
                         result:=7;
                         break;
-                };
+                }
          case 5:{
                  switch(a)
                  {
@@ -16,20 +16,20 @@ begin
                          {
                                  result:=3;
                                  break;
-                         };
+                         }
                          case 2:
                          {
                                  result:=4;
-                         };
-                 };
+                         }
+                 }
                  break;
-                };
+                }
          case 7:{
                  result:=1;
-                 };
+                 }
          default:{
                  result:=2;
-         };
-         };
-        printf("hello @0\n", result);
+         }
+         }
+        printf("result : @0\n", result); //4
 end.

@@ -16,8 +16,12 @@ begin
 	b[2][1][1]:=7;		//7
 
 	result:=p1(a);	//10
+	printf("result is @0\n",result);
 	i:=a[1][1][1];		//4
+	printf("i is @0\n",i);
 
 	result:=p1(b);	//7
+	printf("result is @0\n",result);
 	i:=b[1][1][1];		//4
+	printf("i is @0\n",i);
 end.

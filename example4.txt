@@ -4,8 +4,15 @@ begin
 	a := 123;
 	b := 456;
 	c := a | b;
+	printf("c:@0\n",c);	//507 
 	c := a & b;
+	printf("c:@0\n",c); //72
 	c := a ^ b;
+	printf("c:@0\n",c); //435
 	c := a % b;
-	if c then d := 1;
+	printf("c:@0\n",c); //123
+	if c {
+		d := 1;
+	}
+	printf("d:@0\n",d); //1
 end.

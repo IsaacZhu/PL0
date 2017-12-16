@@ -1,9 +1,11 @@
 var result;
 procedure fact(n);
 begin
-	if n<2 then return 1;
+	callstack;
+	if n<2 return 1;
 	else return fact(-1+n)*n;
 end;
 begin
 	result:=fact(5);
+	printf("result:@0\n",result);
 end.

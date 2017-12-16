@@ -1,0 +1,30 @@
+//test parameter procedure
+//zjr
+//test procedure as argument
+//zjr 12.15
+procedure f(level,*arg(i,j));
+    procedure local(i,j);
+    begin
+        return i+j;
+    end;
+begin
+    if (level > 10){
+        return f(level-1,*local(1,10));
+    }
+    else if (level > 1){
+        return f(level-1,*arg(i,j));
+    }
+    else{
+        callstack;
+        return arg(i,j);
+    }
+end;
+
+procedure dummy(i,j);
+begin
+end;
+
+//main
+begin
+    printf("@0\n",f(13,*dummy(0,0)));
+end.

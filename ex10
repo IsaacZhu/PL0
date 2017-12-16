@@ -4,4 +4,5 @@ begin
 	i:=6;
 	j:=3;
 	j:=i/j;
+	printf("@0\n",j);
 end.

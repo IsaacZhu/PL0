@@ -7,7 +7,7 @@ procedure f(level,*arg());
     end;
 begin
     if (level > 10){
-        return f(level-1,*local);
+        return f(level-1,*local());
     }
     else if (level > 1){
         return f(level-1,*arg());
