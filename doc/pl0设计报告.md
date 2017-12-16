@@ -52,7 +52,7 @@
 
 ####[22.变量初始化的原理及实现](#22.变量初始化的原理及实现)
 
-
+#### [23.do while的实现](#23.do while的实现)
 
 ---
 
@@ -2137,4 +2137,56 @@ arraySubInit	->	number
 ### 22.5效果
 
 ![](pictures/04.png)
+
+
+
+---
+
+
+
+## 23.do while的实现
+
+### 23.1 实现功能
+
+c语言风格的do while语句，以及其嵌套。
+
+### 23.2 设计思路
+
+根据c语言的do while语句，在遇到do标识符号的时候，执行下面的循环语句，然后生成条件判断语句，用JPC判断需不需要跳转，如果不需要，则向下执行其他语句，否则继续循环。
+
+### 23.3 实现效果
+
+代码
+
+```c
+var i,j;
+begin
+     j:=0;
+     i:=0;
+     do
+     {
+         i++;
+         if(i==5)
+         then
+             continue;
+        else ;
+         if(i==6)
+         then
+             continue;
+        else ;
+        j++;
+     };while(i<10);
+     printf("@0 @1\n",i,j);
+end.
+```
+
+输出结果
+
+```c
+Begin executing PL/0 program.
+10 8
+End executing PL/0 program.
+```
+
+
 
