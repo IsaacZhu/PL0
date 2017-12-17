@@ -226,6 +226,22 @@ void getsym(void)
 			sym = SYM_RSBRAC;
 			return;
 		}
+	}	
+	//Dong Shi, 12.16, Add recognize of SYM_ELLIPSIS
+	else if (ch == '.')
+	{
+		getch();
+		if (ch == '.')
+		{
+			sym = SYM_ELLIPSIS;
+			getch();
+			return;
+		}
+		else
+		{
+			sym = SYM_PERIOD;
+			return;
+		}
 	}
 	ch = lastChar;
 
@@ -2717,6 +2733,53 @@ void statement(symset fsys)
 				}
 			}
 		}
+		//Dong Shi, 12.16, Add input array
+		//Notice that part calculating address of the array is copyed
+		//from ljq's previous work (with little modifying)
+		else if(table[i].kind == ID_ARRAY)
+		{
+			mask* mk;
+			array* arr;
+			dimensionHead* dhead;
+			dimension* dim;
+
+			getsym();
+			arr = (array*) &table[i];
+			gen(LEA, level - arr->level, arr->address);
+			i ++;
+			dhead = (dimensionHead*) &table[i];
+			i ++;
+			if(sym != SYM_LSBRAC)
+			{
+				error(30);
+			}
+			depth = 1;	
+			getsym();
+			set1 = createset(SYM_RSBRAC, SYM_LSBRAC, SYM_NULL);
+			set = uniteset(set1, fsys);
+			expression(set);
+			while(sym == SYM_RSBRAC && depth < (dhead->depth))
+			{
+				getsym();
+				if(sym != SYM_LSBRAC)
+				{
+					error(30);
+				}
+				getsym();
+				i ++;
+				depth ++;
+				dim = (dimension*) &table[i];
+				gen(LIT, 0, dim->width);
+				gen(OPR, 0, OPR_MUL);
+				expression(set);
+				gen(OPR, 0, OPR_ADD);
+			}
+			gen(OPR, 0, OPR_ADD);
+			destroyset(set);
+			destroyset(set1);
+			gen(IN, 0, 0);
+			gen(STOAR, 0, 0);
+		}
 		getsym(); //')'
 		getsym();
 	}
@@ -3039,6 +3102,7 @@ void genFirstAssignment(int rank,int assignop)
 }//getFirstAssignment
 
 //Dong Shi, 12.12, Add function to process the list
+//Dong Shi, 12.16, Add lazy list recognize
 int makeList(symset fsys)
 {
 	int listLength = 0;
@@ -3049,6 +3113,9 @@ int makeList(symset fsys)
 	int arrayLevel;
 	int thisList;
 	int flag;
+
+	int numArray[3];
+	int numCount = 0;
 
 	//if (sym == SYM_LLBRC)		move this judge to statement zjr 12.13
 	//{
@@ -3166,10 +3233,33 @@ int makeList(symset fsys)
 			}//if
 			else if (sym == SYM_NUMBER)
 			{
+				if(numCount < 3){
+					numArray[numCount] = num;
+					++ numCount;
+				}
 				nn->type = 0;
 				nn->value = num;
-				getsym();
+				getsym();// , or .. or ]]
 				if (sym == SYM_LRBRC) flag = 1;
+				else if (sym == SYM_ELLIPSIS)
+				{
+					getsym(); //num or ]]
+					listTable[thisList].type = 1; //lazy list
+					listTable[thisList].lazyDescription[1] = numArray[0];
+					listTable[thisList].lazyDescription[2] = numArray[1];
+					if (sym == SYM_NUMBER)
+					{
+						listTable[thisList].lazyDescription[0] = 0;
+						listTable[thisList].lazyDescription[3] = num;
+						getsym(); // ]]
+						flag = 1;
+					}
+					else if (sym == SYM_LRBRC)
+					{
+						listTable[thisList].lazyDescription[0] = 1;
+						flag = 1;
+					}
+				}
 				getsym();
 			}
 
@@ -3218,66 +3308,110 @@ void genListAssign(int left, int right,int assignop)
 
 	listSize = listTable[left].size;
 
-	while(listSize > 0)
-	{
-		//if(leftNode->type != 2)
-		//{
-			//LOD RIGHT VALUE
-			switch(rightNode->type)
+	//Add support of assign lazy list
+	if(listTable[right].type == 0){
+		while(listSize > 0)
+		{
+			//if(leftNode->type != 2)
+			//{
+				//LOD RIGHT VALUE
+				switch(rightNode->type)
+				{
+					case 0: gen(LIT, 0, rightNode->value); break;
+					case 1: gen(LOD, rightNode->level, rightNode->value); break;
+					//Support ID_PVAR ZJR 12.14 #Z8
+					case 4:
+						gen(LOD,rightNode->level,rightNode->value);	//Get address
+						gen(LODAR,0,0);	//get value
+						break;
+					default:	//array
+						iii = rightNode->dim[33];
+						maxdim = rightNode->dim[0];
+						switch(rightNode->type)
+						{
+							case 2: //ID_ARRAY
+								gen(LEA, rightNode->level, rightNode->value);
+								break;
+							case 3: //ID_PARRAY
+								gen(LOD, rightNode->level, rightNode->value);
+								break;
+						}//switch
+						iii ++;
+						dhead = (dimensionHead*) &table[iii];
+						iii ++;
+
+						gen(LIT, 0, rightNode->dim[1]);
+
+						for(itr = 2; itr <= maxdim; ++ itr)
+						{
+							iii ++;
+							dim = (dimension*) &table[iii];
+							gen(LIT, 0, dim->width);
+							gen(OPR, 0, OPR_MUL);
+							gen(LIT, 0, rightNode->dim[itr]);
+							gen(OPR, 0, OPR_ADD);
+						}
+
+						gen(OPR, 0, OPR_ADD);
+						
+						gen(LODAR, 0, 0);
+						break;
+				}; //switch
+			//}//if
+
+			//support different assignment ops zjr 12.13
+			if (assignop!=SYM_BECOMES)
 			{
-				case 0: gen(LIT, 0, rightNode->value); break;
-				case 1: gen(LOD, rightNode->level, rightNode->value); break;
+				//lod initial value of variable
+				switch(leftNode->type)
+				{
+					case 1:gen(LOD,leftNode->level,leftNode->value); break;
+					//Support ID_PVAR ZJR 12.14 #Z8
+					case 4:
+						gen(LOD,leftNode->level,leftNode->value);	//Get address
+						gen(LODAR,0,0);	//get value
+						break;
+					default:	//array
+						iii = leftNode->dim[33];
+						maxdim = leftNode->dim[0];
+						switch(leftNode->type)
+						{
+							case 2: //ID_ARRAY
+								gen(LEA, leftNode->level, leftNode->value);
+								break;
+							case 3: //ID_PARRAY
+								gen(LOD, leftNode->level, leftNode->value);
+								break;
+						}//switch
+
+						iii ++;
+						dhead = (dimensionHead*) &table[iii];
+						iii ++;
+
+						gen(LIT, 0, leftNode->dim[1]);
+
+						for(itr = 2; itr <= maxdim; ++ itr)
+						{
+							iii ++;
+							dim = (dimension*) &table[iii];
+							gen(LIT, 0, dim->width);
+							gen(OPR, 0, OPR_MUL);
+							gen(LIT, 0, leftNode->dim[itr]);
+							gen(OPR, 0, OPR_ADD);
+						}
+						gen(OPR, 0, OPR_ADD);
+						gen(LODAR,0,0);
+				}//switch
+				assign_op_judge(assignop);
+			}//if
+
+			switch(leftNode->type){
+				case 1: gen(STO, leftNode->level, leftNode->value); break;
 				//Support ID_PVAR ZJR 12.14 #Z8
 				case 4:
 					gen(LOD,rightNode->level,rightNode->value);	//Get address
-					gen(LODAR,0,0);	//get value
-					break;
-				default:	//array
-					iii = rightNode->dim[33];
-					maxdim = rightNode->dim[0];
-					switch(rightNode->type)
-					{
-						case 2: //ID_ARRAY
-							gen(LEA, rightNode->level, rightNode->value);
-							break;
-						case 3: //ID_PARRAY
-							gen(LOD, rightNode->level, rightNode->value);
-							break;
-					}//switch
-					iii ++;
-					dhead = (dimensionHead*) &table[iii];
-					iii ++;
-
-					gen(LIT, 0, rightNode->dim[1]);
-
-					for(itr = 2; itr <= maxdim; ++ itr)
-					{
-						iii ++;
-						dim = (dimension*) &table[iii];
-						gen(LIT, 0, dim->width);
-						gen(OPR, 0, OPR_MUL);
-						gen(LIT, 0, rightNode->dim[itr]);
-						gen(OPR, 0, OPR_ADD);
-					}
-
-					gen(OPR, 0, OPR_ADD);
-					
-					gen(LODAR, 0, 0);
-					break;
-			}; //switch
-		//}//if
-
-		//support different assignment ops zjr 12.13
-		if (assignop!=SYM_BECOMES)
-		{
-			//lod initial value of variable
-			switch(leftNode->type)
-			{
-				case 1:gen(LOD,leftNode->level,leftNode->value); break;
-				//Support ID_PVAR ZJR 12.14 #Z8
-				case 4:
-					gen(LOD,leftNode->level,leftNode->value);	//Get address
-					gen(LODAR,0,0);	//get value
+					gen(EXC,0,0);
+					gen(STOAR,0,0);
 					break;
 				default:	//array
 					iii = leftNode->dim[33];
@@ -3307,61 +3441,71 @@ void genListAssign(int left, int right,int assignop)
 						gen(LIT, 0, leftNode->dim[itr]);
 						gen(OPR, 0, OPR_ADD);
 					}
+
 					gen(OPR, 0, OPR_ADD);
-					gen(LODAR,0,0);
-			}//switch
-			assign_op_judge(assignop);
-		}//if
+					gen(EXC,0,0);	//zjr 12.13 
+					gen(STOAR,0,0);
+					gen(POP,0,0);	//zjr 12.13 pop value of STOAR's return value	
+					break;
+			};
+			
 
-		switch(leftNode->type){
-			case 1: gen(STO, leftNode->level, leftNode->value); break;
-			//Support ID_PVAR ZJR 12.14 #Z8
-			case 4:
-				gen(LOD,rightNode->level,rightNode->value);	//Get address
-				gen(EXC,0,0);
-				gen(STOAR,0,0);
-				break;
-			default:	//array
-				iii = leftNode->dim[33];
-				maxdim = leftNode->dim[0];
-				switch(leftNode->type)
-				{
-					case 2: //ID_ARRAY
-						gen(LEA, leftNode->level, leftNode->value);
-						break;
-					case 3: //ID_PARRAY
-						gen(LOD, leftNode->level, leftNode->value);
-						break;
-				}//switch
+			-- listSize;
+			leftNode = leftNode->next;
+			rightNode = rightNode->next;
+		}//while
+	}
+	else
+	{	
+		int lazyListElement = listTable[right].lazyDescription[1];
+		int delta = listTable[right].lazyDescription[2] - listTable[right].lazyDescription[1];
+		while(listSize > 0)
+		{
+			gen(LIT, 0, lazyListElement);
 
-				iii ++;
-				dhead = (dimensionHead*) &table[iii];
-				iii ++;
+			switch(leftNode->type){
+				case 1: gen(STO, leftNode->level, leftNode->value); break;
+				default:	//array
+					iii = leftNode->dim[33];
+					maxdim = leftNode->dim[0];
+					switch(leftNode->type)
+					{
+						case 2: //ID_ARRAY
+							gen(LEA, leftNode->level, leftNode->value);
+							break;
+						case 3: //ID_PARRAY
+							gen(LOD, leftNode->level, leftNode->value);
+							break;
+					}//switch
 
-				gen(LIT, 0, leftNode->dim[1]);
-
-				for(itr = 2; itr <= maxdim; ++ itr)
-				{
 					iii ++;
-					dim = (dimension*) &table[iii];
-					gen(LIT, 0, dim->width);
-					gen(OPR, 0, OPR_MUL);
-					gen(LIT, 0, leftNode->dim[itr]);
+					dhead = (dimensionHead*) &table[iii];
+					iii ++;
+
+					gen(LIT, 0, leftNode->dim[1]);
+
+					for(itr = 2; itr <= maxdim; ++ itr)
+					{
+						iii ++;
+						dim = (dimension*) &table[iii];
+						gen(LIT, 0, dim->width);
+						gen(OPR, 0, OPR_MUL);
+						gen(LIT, 0, leftNode->dim[itr]);
+						gen(OPR, 0, OPR_ADD);
+					}
+
 					gen(OPR, 0, OPR_ADD);
-				}
+					gen(EXC,0,0);	//zjr 12.13 
+					gen(STOAR,0,0);
+					gen(POP,0,0);	//zjr 12.13 pop value of STOAR's return value	
+					break;
+			};
 
-				gen(OPR, 0, OPR_ADD);
-				gen(EXC,0,0);	//zjr 12.13 
-				gen(STOAR,0,0);
-				gen(POP,0,0);	//zjr 12.13 pop value of STOAR's return value	
-				break;
-		};
-		
-
-		-- listSize;
-		leftNode = leftNode->next;
-		rightNode = rightNode->next;
-	}//while
+			-- listSize;
+			leftNode = leftNode->next;
+			lazyListElement += delta;
+		}
+	}
 }//genListAssign
 
 //clear items with same name in symbol table ZJR 12.15  #Z6

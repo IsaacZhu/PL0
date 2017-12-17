@@ -1,8 +1,17 @@
-var  a, b, c, arr[4][6][8];
+var  a, b, c, barr[5], arr[4][6][8], i;
 begin
     a:=2;
     b:=1;
     c:=1;
     [[a, b, c]] += [[arr[1][2][3], b, a]] := [[b, a, c]] *= 14, 97, 33;
     printf("a = @0, b = @1, c = @2, arr123 = @3\n", a, b, c, arr[1][2][3]);
+
+    //input(a);
+    //input(arr[3][4][5]);
+    //printf("a = @0, a345 = @1\n", a, arr[3][4][5]);
+
+    [[barr[0], barr[1], barr[2], barr[3], barr[4] ]] := [[100, 200 .. 500]];
+    for(i := 0; i <5; ++ i){
+        printf("barr[@0] = @1\n", i, barr[i]);
+    };
 end.

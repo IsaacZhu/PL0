@@ -4,20 +4,16 @@ begin
 	result:=5;
         do
         {
-           if(a==3)
-           then
-              {
+           if(a==3){
                       do
                       {
-                        if(i==2)
-                        then 
+                        if(i==2){
                               break;
-                        else ;
-                              i++;
-                      };while(i<a);
-              };
-           else ;
+                        }
+                        i++;
+                      }while(i<a);
+           }//if
            a++;
-        };while(a<result);
-        printf("hello @0 @1\n", a,i);
+        }while(a<result);
+        printf("@0 @1\n", a,i);
 end.

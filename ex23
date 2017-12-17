@@ -3,7 +3,6 @@ procedure p(i,&j);
     procedure  q(&j);
     begin
         j+=2;
-        callstack;
         return j-1;
     end;
 begin

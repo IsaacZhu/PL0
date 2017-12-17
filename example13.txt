@@ -1,7 +1,7 @@
 var result, a, b, c;
 procedure fact(n);
 begin
-	if n<2 then return 1;
+	if n<2 return 1;
 	else return fact(-1+n)*n;
 end;
 begin
